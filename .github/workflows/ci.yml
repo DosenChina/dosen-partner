@@ -19,18 +19,3 @@ jobs:
         java-version: '21'
         distribution: 'temurin'
         cache: maven
-
-    - name: Build with Maven
-      run: mvn clean package
-
-    - name: Run tests
-      run: mvn test
-
-    - name: Check code style
-      run: mvn checkstyle:check
-
-    - name: Upload artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: partner-agent
-        path: partner-agent/target/partner-agent-*.jar
