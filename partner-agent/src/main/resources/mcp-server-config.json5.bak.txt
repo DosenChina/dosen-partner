@@ -1,0 +1,79 @@
+{
+  "mcpServers": {
+    "MongoDB": {
+      "command": "C:\\mysoft\\nodejs\\npx.cmd",
+      "args": [
+        "-y",
+        "mongodb-mcp-server@latest"
+      ],
+      "env": {
+        "MDB_MCP_CONNECTION_STRING": "mongodb://admin:qazwsx123@192.168.77.99:27017/admin?authSource=admin",
+        "MDB_MCP_READ_ONLY": "false"
+      }
+    },
+    "neo4j": {
+      "command": "C:\\mysoft\\nodejs\\npx.cmd",
+      "args": ["@alanse/mcp-neo4j-server"],
+      "env": {
+        "NEO4J_URI": "bolt://192.168.77.99:7687",
+        "NEO4J_USERNAME": "neo4j",
+        "NEO4J_PASSWORD": "Dosen#China",
+        "NEO4J_DATABASE": "neo4j"
+      }
+    },
+    "amap-maps": {
+      "command": "C:\\mysoft\\nodejs\\npx.cmd",
+      "args": [
+        "-y",
+        "@amap/amap-maps-mcp-server"
+      ],
+      "env": {
+        "AMAP_MAPS_API_KEY": "Your AMap API Key"
+      }
+    },
+    "news-fetcher": {
+      "command": "C:\\mysoft\\py313\\Scripts\\uv.exe",
+      "args": [
+        "--directory",
+        "C:\\mydata\\projects\\myopensource\\llm\\dosen-partner\\thirdmcpserver\\news-fetcher",
+        "run",
+        "news_fetcher_mcp.py"
+      ]
+    },
+    "web-search-duckduckgo": {
+      "command": "C:\\mysoft\\py313\\Scripts\\uv.exe",
+      "args": [
+        "--directory",
+        "C:\\mydata\\projects\\myopensource\\llm\\dosen-partner\\thirdmcpserver\\web-search-duckduckgo",
+        "run",
+        "main.py"
+      ]
+    },
+    "mysql": {
+      "command": "C:\\mysoft\\py313\\Scripts\\uv.exe",
+      "args": [
+        "--directory",
+        "C:\\mydata\\projects\\myopensource\\llm\\dosen-partner\\thirdmcpserver\\mysql_mcp_server",
+        "run",
+        "mysql_mcp_server"
+      ],
+      "env": {
+        "MYSQL_HOST": "192.168.77.99",
+        "MYSQL_PORT": "33061",
+        "MYSQL_USER": "root",
+        "MYSQL_PASSWORD": "Dosen#China",
+        "MYSQL_DATABASE": "dosen_account"
+      }
+    },
+    "RedisMCPServer": {
+      "command": "C:\\mysoft\\py313\\Scripts\\uvx.exe",
+      "args": [
+        "--from",
+        "redis-mcp-server@latest",
+        "redis-mcp-server",
+        "--url",
+        "redis://192.168.77.99:16379/0"
+      ]
+    }
+  }
+}

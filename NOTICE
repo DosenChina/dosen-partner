@@ -1,0 +1,49 @@
+NOTICE file for dosen-partner project
+
+This project uses the following third-party libraries:
+
+1. Spring Boot (https://spring.io/projects/spring-boot)
+   - License: Apache License 2.0
+   - Version: 3.5.5
+
+2. Spring AI (https://spring.io/projects/spring-ai)
+   - License: Apache License 2.0
+   - Version: 1.1.4
+
+3. LangChain4j (https://github.com/langchain4j/langchain4j)
+   - License: Apache License 2.0
+   - Version: 1.12.2
+
+4. TinyPinyin (https://github.com/promeG/tinypinyin)
+   - License: Apache License 2.0
+   - Version: 2.0.3
+
+5. Pinyin4j (https://github.com/belerweb/pinyin4j)
+   - License: Apache License 2.0
+   - Version: 2.5.1
+
+6. Lombok (https://projectlombok.org/)
+   - License: MIT License
+   - Version: 1.18.38
+
+7. Hutool (https://hutool.cn/)
+   - License: MIT License
+   - Version: 5.8.22
+
+8. Thymeleaf (https://www.thymeleaf.org/)
+   - License: Apache License 2.0
+
+9. Spring Data Redis (https://spring.io/projects/spring-data-redis)
+   - License: Apache License 2.0
+
+10. Spring Security Crypto (https://spring.io/projects/spring-security)
+    - License: Apache License 2.0
+
+11. Qdrant Vector Store (https://qdrant.tech/)
+    - License: Apache License 2.0
+
+12. gRPC (https://grpc.io/)
+    - License: Apache License 2.0
+    - Version: 1.59.0
+
+All third-party libraries are used in accordance with their respective licenses.

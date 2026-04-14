@@ -1,0 +1,2960 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI智能助手 - SpringAIAlibaba</title>
+    <!-- Favicon -->
+    <link rel="icon" href="/static/img/DosenChinaLogo.png" type="image/png">
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- marked.js: Markdown渲染 -->
+    <script src="https://cdn.jsdelivr.net/npm/marked@9.1.6/marked.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #0d6efd;
+            --secondary-color: #6c757d;
+            --success-color: #198754;
+            --light-bg: #f8f9fa;
+            --border-color: #dee2e6;
+            --sidebar-width: 260px;
+            --config-width: 340px;
+            --header-height: 60px;
+        }
+        * { box-sizing: border-box; }
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            overflow: hidden;
+        }
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .hidden-input {
+            display: none;
+        }
+        .app-container {
+            display: flex;
+            height: 100%;
+            gap: 12px;
+            padding: 12px;
+            min-height: 0;
+        }
+        /* 左侧会话栏 */
+        .sessions-sidebar {
+            width: var(--sidebar-width);
+            flex-shrink: 0;
+            background: rgba(255,255,255,0.95);
+            border-radius: 16px;
+            display: flex;
+            flex-direction: column;
+            overflow: visible;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+        }
+        /* 中间聊天区 */
+        .chat-section {
+            flex: 1;
+            min-width: 0;
+            background: rgba(255,255,255,0.95);
+            border-radius: 16px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+        }
+        /* 右侧配置区 */
+        .sidebar-section {
+            width: var(--config-width);
+            height: 100%;
+            overflow-y: auto;
+            padding-right: 4px;
+        }
+        .sidebar-section::-webkit-scrollbar { width: 6px; }
+        .sidebar-section::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.3); border-radius: 3px; }
+        .sessions-header {
+            padding: 16px;
+            border-bottom: 1px solid var(--light-bg);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .sessions-header h4 {
+            margin: 0;
+            color: #333;
+            font-weight: 600;
+            font-size: 1rem;
+        }
+        .sessions-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 8px 12px;
+        }
+        .session-item {
+            padding: 10px 12px;
+            border-radius: 10px;
+            margin-bottom: 8px;
+            border: 1px solid var(--border-color);
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+        }
+        .session-item:hover {
+            background-color: var(--light-bg);
+            border-color: var(--primary-color);
+        }
+        .session-item.active {
+            background-color: rgba(13, 110, 253, 0.1);
+            border-color: var(--primary-color);
+        }
+        .session-title {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .session-summary {
+            font-size: 0.85rem;
+            color: var(--secondary-color);
+            margin-bottom: 5px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .session-meta {
+            font-size: 0.75rem;
+            color: #999;
+            display: flex;
+            justify-content: space-between;
+        }
+        .session-delete-btn {
+            position: absolute;
+            right: 10px;
+            top: 10px;
+            opacity: 0;
+            transition: opacity 0.2s;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .session-item:hover .session-delete-btn {
+            opacity: 1;
+        }
+        .new-session-btn {
+            width: 100%;
+            margin-top: 10px;
+        }
+        .current-session-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 0.9rem;
+            background: var(--light-bg);
+            padding: 4px 10px;
+            border-radius: 20px;
+            margin-left: 10px;
+        }
+        .news-card, .weather-card, .llm-config-card {
+            background: rgba(255,255,255,0.95);
+            border-radius: 16px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+            flex-shrink: 0;
+        }
+        .forecast-container {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .forecast-day {
+            background: rgba(240, 240, 240, 0.8);
+            border-radius: 8px;
+            padding: 10px;
+            border-left: 3px solid var(--primary-color);
+        }
+        .forecast-date {
+            font-weight: 600;
+            margin-bottom: 5px;
+            font-size: 0.9rem;
+        }
+        .forecast-day-weather, .forecast-night-weather {
+            font-size: 0.8rem;
+            margin-bottom: 3px;
+        }
+        .chat-header, .card-header {
+            border-bottom: 1px solid var(--light-bg);
+            padding-bottom: 12px;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .chat-header h3, .card-header h4 {
+            margin: 0;
+            color: #333;
+            font-weight: 600;
+            font-size: 1rem;
+        }
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+            background-color: var(--light-bg);
+            border-radius: 12px;
+            margin-bottom: 16px;
+        }
+        .message {
+            margin-bottom: 15px;
+            padding: 12px 18px;
+            border-radius: 15px;
+            max-width: 80%;
+            width: fit-content;
+            word-wrap: break-word;
+        }
+        .user-message {
+            background-color: var(--primary-color);
+            color: white;
+            margin-left: auto;
+            border-bottom-right-radius: 5px;
+            min-width: 60px;
+        }
+        .ai-message {
+            background-color: white;
+            color: #333;
+            border: 1px solid var(--border-color);
+            margin-right: auto;
+            border-bottom-left-radius: 5px;
+        }
+        .chat-input-area {
+            display: flex;
+            gap: 12px;
+            align-items: flex-end;
+        }
+        .chat-input-area textarea {
+            flex: 1;
+            resize: none;
+            border-radius: 12px;
+            border: 2px solid var(--border-color);
+            padding: 14px 16px;
+            font-size: 15px;
+            transition: border-color 0.2s;
+        }
+        .chat-input-area textarea:focus {
+            border-color: var(--primary-color);
+            outline: none;
+        }
+        .chat-input-area button {
+            border-radius: 12px;
+            padding: 12px 24px;
+            font-weight: 600;
+        }
+        .news-item {
+            padding: 12px 15px;
+            border-bottom: 1px solid var(--light-bg);
+        }
+        .news-item:last-child {
+            border-bottom: none;
+        }
+        .news-title {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        .news-meta {
+            font-size: 0.85rem;
+            color: var(--secondary-color);
+        }
+        .news-content {
+            font-size: 0.95rem;
+            line-height: 1.5;
+            color: #555;
+            margin: 8px 0;
+            white-space: normal;
+            word-wrap: break-word;
+        }
+        .bg-purple {
+            background-color: #6f42c1 !important;
+        }
+        .weather-icon {
+            font-size: 3rem;
+            color: var(--primary-color);
+            margin-bottom: 15px;
+        }
+        .weather-detail {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+            border-bottom: 1px dashed var(--light-bg);
+        }
+        .weather-detail:last-child {
+            border-bottom: none;
+        }
+        .weather-city {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #333;
+        }
+        .weather-temp {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #333;
+            line-height: 1;
+        }
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: var(--primary-color);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+        }
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: var(--secondary-color);
+        }
+        .error-message {
+            color: #dc3545;
+            padding: 10px;
+            border-radius: 5px;
+            background-color: #f8d7da;
+            margin-bottom: 15px;
+        }
+        #newsContent {
+            max-height: 300px;
+            overflow-y: auto;
+            padding-right: 5px;
+        }
+        #newsContent::-webkit-scrollbar {
+            width: 6px;
+        }
+        #newsContent::-webkit-scrollbar-thumb {
+            background-color: var(--secondary-color);
+            border-radius: 3px;
+        }
+        /* Markdown渲染样式 */
+        .ai-message p { margin-bottom: 0.5em; }
+        .ai-message p:last-child { margin-bottom: 0; }
+        .ai-message pre {
+            background: #f4f4f4;
+            border-radius: 6px;
+            padding: 10px 14px;
+            overflow-x: auto;
+            font-size: 0.9em;
+        }
+        .ai-message code {
+            background: #f0f0f0;
+            padding: 1px 5px;
+            border-radius: 3px;
+            font-size: 0.9em;
+        }
+        .ai-message pre code {
+            background: none;
+            padding: 0;
+        }
+        .ai-message ul, .ai-message ol {
+            padding-left: 1.5em;
+            margin-bottom: 0.5em;
+        }
+        .ai-message blockquote {
+            border-left: 3px solid var(--primary-color);
+            padding-left: 10px;
+            color: var(--secondary-color);
+            margin: 0.5em 0;
+        }
+        .ai-message h1,.ai-message h2,.ai-message h3,.ai-message h4 {
+            font-size: 1em;
+            font-weight: 700;
+            margin: 0.5em 0 0.3em;
+        }
+        /* 消息复制按钮样式 */
+        .message {
+            position: relative;
+        }
+        .message-actions {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        .message:hover .message-actions {
+            opacity: 1;
+        }
+        .btn-copy-content {
+            font-size: 0.75rem;
+        }
+    </style>
+</head>
+<body>
+    <!-- 从服务器获取的当前会话ID（用于初始化） -->
+    <input type="hidden" id="currentSessionId" class="hidden-input" th:value="${sessionId}">
+    <!-- 从服务器获取的token（用于初始化） -->
+    <input type="hidden" id="token" class="hidden-input" th:value="${token}">
+    <!-- 全屏主容器 -->
+    <div class="app-container">
+        <!-- 左侧：会话历史 -->
+        <div class="sessions-sidebar">
+            <div class="sessions-header">
+                <h4><i class="fas fa-robot me-2 text-primary"></i> <strong>AI助手</strong></h4>
+                <span class="badge bg-primary rounded-pill" id="sessionCount">0</span>
+            </div>
+            <div class="sessions-list" id="sessionsList">
+                <div class="text-center py-4 text-muted">
+                    <i class="fas fa-spinner fa-spin me-2"></i> 加载中...
+                </div>
+            </div>
+            <div class="p-3 border-top">
+                <button class="btn btn-primary w-100 mb-2" id="newSessionBtn">
+                    <i class="fas fa-plus me-2"></i> 新建对话
+                </button>
+                <button class="btn btn-outline-warning w-100 mb-2" id="openRagBtn">
+                    <i class="fas fa-database me-2"></i> RAG知识库
+                </button>
+                <button class="btn btn-outline-success w-100 mb-2" id="openEmbedConfigBtn">
+                    <i class="fas fa-vector-square me-2"></i> 词嵌入配置
+                </button>
+                <button class="btn btn-outline-info w-100" id="initQdrantBtn">
+                    <i class="fas fa-cog me-2"></i> 初始化Qdrant集合
+                </button>
+            </div>
+            <div class="mt-auto p-3 border-top bg-light rounded-0">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="user-avatar" th:text="${nickname?.substring(0,1)} ?: 'U'">U</div>
+                        <div class="small">
+                            <div class="fw-bold" th:text="${nickname}">用户</div>
+                            <div class="text-muted" style="font-size: 0.7rem;" th:text="${#dates.format(loginTime, 'MM-dd HH:mm')}">时间</div>
+                        </div>
+                    </div>
+                    <button type="button" id="logoutBtn" class="btn btn-outline-danger btn-sm" title="退出登录" onclick="doLogout()" style="position:relative;z-index:1;cursor:pointer;">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 中间：AI聊天区域 -->
+        <section class="chat-section">
+            <div class="chat-header">
+                <div class="d-flex align-items-center">
+                    <h3 class="me-3 mb-0"><i class="fas fa-comments me-2 text-primary"></i> <strong>AI智能对话</strong></h3>
+                    <span class="badge bg-light text-dark border" id="currentSessionTitle">默认对话</span>
+                    <span class="ms-3 current-session-indicator" id="currentSessionIndicator">
+                        <i class="fas fa-circle text-success" style="font-size: 8px;"></i>
+                        <span class="text-muted small">ID: <span id="currentSessionIdDisplay">加载中...</span></span>
+                    </span>
+                </div>
+                <div class="d-flex gap-2 align-items-center">
+                    <span class="stream-status me-2" id="streamStatus">
+                        <i class="fas fa-bolt text-warning"></i>
+                    </span>
+                    <button class="btn btn-sm btn-warning" id="toggleStreamBtn" title="切换流式响应">
+                        <i class="fas fa-bolt me-1"></i>流式
+                    </button>
+                    <button class="btn btn-sm btn-outline-primary" id="toggleRagBtn" title="切换知识库功能">
+                        <i class="fas fa-database me-1"></i>知识库
+                    </button>
+                </div>
+            </div>
+            <div class="chat-messages" id="chatMessages">
+                <div class="loading" id="chatLoading">
+                    <i class="fas fa-spinner fa-spin me-2"></i>等待您的第一条消息...
+                </div>
+            </div>
+            <div class="chat-input-area">
+                <textarea id="messageInput" placeholder="输入您的问题，例如：什么是Spring AI？" rows="2"></textarea>
+                <button id="sendButton" class="btn btn-primary">
+                    <i class="fas fa-paper-plane me-2"></i>发送
+                </button>
+            </div>
+        </section>
+
+        <!-- 右侧：新闻和天气侧边栏 -->
+        <div class="sidebar-section">
+                <!-- 历史记录按钮 -->
+                <div class="mb-3">
+                    <button class="btn btn-primary w-100 text-white" data-bs-toggle="modal" data-bs-target="#historyModal" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none;">
+                        <i class="fas fa-history me-2"></i> 查看历史记录
+                    </button>
+                </div>
+
+                <!-- 今日要闻 -->
+                <div class="news-card">
+                    <div class="card-header">
+                        <h4><i class="fas fa-newspaper me-2"></i> 今日要闻</h4>
+                        <button id="refreshNews" class="btn btn-sm btn-outline-primary">
+                            <i class="fas fa-sync-alt"></i> 刷新
+                        </button>
+                    </div>
+                    <div id="newsContent">
+                        <div class="loading">
+                            <i class="fas fa-newspaper me-2"></i>暂无新闻<br>
+                            <small>点击上方刷新按钮加载最新新闻</small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 天气查询 -->
+                <div class="weather-card">
+                    <div class="card-header">
+                        <h4><i class="fas fa-cloud-sun me-2"></i> 天气查询</h4>
+                        <div class="input-group input-group-sm" style="width: 150px;">
+                            <input type="text" id="cityInput" class="form-control" placeholder="输入城市" value="北京">
+                            <button id="queryWeather" class="btn btn-primary">
+                                <i class="fas fa-search"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div id="weatherContent">
+                        <div class="loading">
+                            <i class="fas fa-search me-2"></i>暂无天气数据<br>
+                            <small>输入城市后点击查询按钮获取天气</small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 模型配置（多配置版）-->
+                <div class="llm-config-card" style="background:rgba(255,255,255,0.95);border-radius:16px;padding:16px;box-shadow:0 4px 16px rgba(0,0,0,0.08);">
+                    <div class="card-header d-flex justify-content-between align-items-center mb-3" style="background:none;border:none;padding:0;">
+                        <h4 class="mb-0"><i class="fas fa-sliders-h me-2 text-primary"></i> 模型配置</h4>
+                        <button class="btn btn-sm btn-outline-primary" id="llmToggleAddBtn">
+                            <i class="fas fa-plus me-1"></i> 新增
+                        </button>
+                    </div>
+
+                    <!-- 已保存配置下拉选择 -->
+                    <div class="mb-3" id="llmSelectSection">
+                        <label class="form-label fw-semibold small mb-1">
+                            <i class="fas fa-list me-1 text-primary"></i> 已保存配置
+                        </label>
+                        <div class="d-flex gap-2">
+                            <select id="llmConfigSelect" class="form-select form-select-sm" style="flex:1;">
+                                <option value="">— 暂无可用配置，使用系统默认 —</option>
+                            </select>
+                            <button class="btn btn-success btn-sm" id="llmActivateBtn" title="测试后切换使用此模型" style="white-space:nowrap;">
+                                <i class="fas fa-check me-1"></i>启用
+                            </button>
+                            <button class="btn btn-outline-danger btn-sm" id="llmDeleteBtn" title="删除此配置">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                        <div id="llmSelectHint" class="form-text small text-muted mt-1"></div>
+                    </div>
+
+                    <!-- 新增/编辑表单（默认折叠，点击新增展开）-->
+                    <div id="llmAddForm" style="display:none; border-top:1px dashed #dee2e6; padding-top:12px; margin-top:4px;">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="fw-semibold small"><i class="fas fa-edit me-1 text-primary"></i> 配置信息</span>
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-primary btn-sm" id="llmSaveBtn">
+                                    <i class="fas fa-save me-1"></i> 保存
+                                </button>
+                                <button class="btn btn-outline-secondary btn-sm" id="llmCancelAddBtn">取消</button>
+                            </div>
+                        </div>
+                        <input type="hidden" id="llmEditId">
+
+                        <!-- 模型类型 -->
+                        <div class="mb-2">
+                            <label class="form-label fw-semibold small mb-1">模型类型</label>
+                            <select id="llmModelType" class="form-select form-select-sm">
+                                <option value="openai_compatible">OpenAI 兼容（Deepseek / Qwen / 其他）</option>
+                                <option value="xiaomimimo">小米 MiMo（大模型）</option>
+                                <option value="ollama">Ollama（本地部署）</option>
+                            </select>
+                        </div>
+
+                        <!-- Base URL -->
+                        <div class="mb-2">
+                            <label class="form-label fw-semibold small mb-1">
+                                <i class="fas fa-link me-1 text-primary"></i> Base URL <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" id="llmBaseUrl" class="form-control form-control-sm"
+                                placeholder="https://api.deepseek.com" style="background:#f0f4ff;">
+                            <div id="llmBaseUrlHint" class="form-text small text-muted mt-1" style="line-height:1.4;">
+                                Deepseek: <code class="small">https://api.deepseek.com</code><br>
+                                Qwen/DashScope: <code class="small">https://dashscope.aliyuncs.com/compatible-mode</code><br>
+                                小米 MiMo: <code class="small">https://api.xiaomimimo.com</code><br>
+                                Ollama: <code class="small">http://localhost:11434</code><br>
+                                <span class="text-info small">框架会自动拼接 /v1，无需手动添加</span>
+                            </div>
+                        </div>
+
+                        <!-- API Key -->
+                        <div class="mb-2" id="llmApiKeyGroup">
+                            <label class="form-label fw-semibold small mb-1">
+                                <i class="fas fa-key me-1 text-primary"></i> API Key <span class="text-danger">*</span>
+                            </label>
+                            <input type="password" id="llmApiKey" class="form-control form-control-sm"
+                                placeholder="sk-..." style="background:#f0f4ff;">
+                        </div>
+
+                        <!-- 模型名称 -->
+                        <div class="mb-2">
+                            <label class="form-label fw-semibold small mb-1">
+                                <i class="fas fa-robot me-1 text-primary"></i> 模型名称 <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" id="llmModel" class="form-control form-control-sm"
+                                placeholder="deepseek-chat / qwen-plus / llama3" style="background:#f0f4ff;">
+                        </div>
+
+                        <!-- 备注标签 -->
+                        <div class="mb-2">
+                            <label class="form-label fw-semibold small mb-1">备注标签（可选）</label>
+                            <input type="text" id="llmLabel" class="form-control form-control-sm"
+                                placeholder="如：我的Deepseek Pro" style="background:#f0f4ff;">
+                        </div>
+
+                        <!-- 测试按钮 -->
+                        <div class="d-flex justify-content-end mb-2">
+                            <button type="button" class="btn btn-outline-success btn-sm" id="llmFormTestBtn" style="min-width:100px;">
+                                <i class="fas fa-plug me-1"></i> 测试连接
+                            </button>
+                        </div>
+
+                        <!-- 反馈 -->
+                        <div id="llmFeedback" class="mt-2" style="display:none;"></div>
+                    </div>
+                </div>
+
+                <!-- 模型切换确认弹框（static: 不自动关闭，keyboard=false: ESC不关闭） -->
+                <div class="modal fade" id="llmSelectModal" tabindex="-1" aria-hidden="true"
+                     data-bs-backdrop="static" data-bs-keyboard="false">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title"><i class="fas fa-exchange-alt me-2 text-primary"></i>切换模型</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="关闭"></button>
+                            </div>
+                            <div class="modal-body">
+                                <div id="llmModalConfigInfo" class="mb-3 p-3 rounded" style="background:#f8f9fa;"></div>
+                                <div id="llmModalTestResult" class="small" style="display:none;"></div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" id="llmModalCancelBtn">取消</button>
+                                <button type="button" class="btn btn-success" id="llmModalConfirmBtn" disabled>
+                                    <i class="fas fa-check me-1"></i> 确认切换
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+        <!-- 历史记录模态框（static: 不自动关闭，keyboard=false: ESC不关闭） -->
+        <div class="modal fade" id="historyModal" tabindex="-1" aria-labelledby="historyModalLabel" aria-hidden="true"
+             data-bs-backdrop="static" data-bs-keyboard="false">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="historyModalLabel">
+                            <i class="fas fa-history me-2"></i> 历史记录
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <div class="btn-group" role="group">
+                                <button type="button" class="btn btn-outline-primary active" data-type="all">全部</button>
+                                <button type="button" class="btn btn-outline-primary" data-type="ai_chat">AI对话</button>
+                                <button type="button" class="btn btn-outline-primary" data-type="news_query">新闻查询</button>
+                                <button type="button" class="btn btn-outline-primary" data-type="weather_query">天气查询</button>
+                                <button type="button" class="btn btn-outline-success" data-type="news_history">历史要闻</button>
+                            </div>
+                        </div>
+                        <div id="historyList" class="list-group" style="max-height: 400px; overflow-y: auto;">
+                            <div class="text-center py-4 text-muted">
+                                <i class="fas fa-spinner fa-spin me-2"></i> 加载中...
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 新建对话Modal（static: 不自动关闭，keyboard=false: ESC不关闭） -->
+        <div class="modal fade" id="newSessionModal" tabindex="-1" aria-labelledby="newSessionModalLabel" aria-hidden="true"
+             data-bs-backdrop="static" data-bs-keyboard="false">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="newSessionModalLabel">
+                            <i class="fas fa-plus me-2"></i> 新建对话
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="newSessionTitle" class="form-label">对话标题（可选）</label>
+                            <input type="text" class="form-control" id="newSessionTitle" placeholder="留空则自动生成标题">
+                        </div>
+                        <div class="mb-3">
+                            <label for="newSessionFirstMsg" class="form-label">第一条消息（可选）</label>
+                            <textarea class="form-control" id="newSessionFirstMsg" rows="3" placeholder="输入第一条消息后将自动发送"></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                        <button type="button" class="btn btn-primary" id="confirmNewSession">
+                            <i class="fas fa-plus me-1"></i> 创建
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- RAG知识库Modal -->
+        <div class="modal fade" id="ragModal" tabindex="-1" aria-labelledby="ragModalLabel" aria-hidden="true"
+             data-bs-backdrop="static" data-bs-keyboard="false">
+            <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="ragModalLabel">
+                            <i class="fas fa-database me-2 text-warning"></i> RAG知识库管理
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="关闭"></button>
+                    </div>
+                    <div class="modal-body">
+                        <!-- 统计信息 -->
+                        <div class="alert alert-info mb-3">
+                            <i class="fas fa-info-circle me-1"></i>
+                            已导入文件：<strong id="ragImportedCount">0</strong> 个
+                        </div>
+
+                        <!-- 目录输入 -->
+                        <div class="card mb-3">
+                            <div class="card-body">
+                                <h6 class="card-title"><i class="fas fa-folder-open me-1"></i> 选择本地目录</h6>
+                                <div class="input-group mb-2">
+                                    <input type="text" id="ragDirectoryInput" class="form-control"
+                                           placeholder="输入本地目录绝对路径，如：D:\projects\mycode">
+                                    <button class="btn btn-primary" id="ragScanBtn">
+                                        <i class="fas fa-search me-1"></i> 扫描
+                                    </button>
+                                </div>
+                                <small class="text-muted">支持的格式：.txt, .md, .java, .py, .js, .ts, .xml, .yml, .json, .sql 等</small>
+                            </div>
+                        </div>
+
+                        <!-- 文件列表 -->
+                        <div id="ragFileListArea" class="mb-3" style="display:none;">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h6 class="mb-0"><i class="fas fa-list me-1"></i> 扫描结果 (<span id="ragFileCount">0</span> 个文件)</h6>
+                                <div>
+                                    <button class="btn btn-sm btn-outline-secondary me-2" id="ragSelectAll">
+                                        <i class="fas fa-check-square me-1"></i> 全选
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-secondary" id="ragDeselectAll">
+                                        <i class="fas fa-square me-1"></i> 取消
+                                    </button>
+                                </div>
+                            </div>
+                            <div id="ragFileList" class="list-group" style="max-height: 300px; overflow-y: auto;">
+                                <!-- 文件列表动态生成 -->
+                            </div>
+                        </div>
+
+                        <!-- 操作结果 -->
+                        <div id="ragResultArea" class="alert" style="display:none;"></div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                        <button type="button" class="btn btn-warning" id="ragImportBtn" disabled>
+                            <i class="fas fa-upload me-1"></i> 导入选中文件
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 词嵌入配置Modal -->
+        <div class="modal fade" id="embedConfigModal" tabindex="-1" aria-labelledby="embedConfigModalLabel" aria-hidden="true"
+             data-bs-backdrop="static" data-bs-keyboard="false">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="embedConfigModalLabel">
+                            <i class="fas fa-vector-square me-2 text-success"></i> 词嵌入配置
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="关闭"></button>
+                    </div>
+                    <div class="modal-body">
+                        <!-- 说明 -->
+                        <div class="alert alert-success mb-3">
+                            <i class="fas fa-lightbulb me-1"></i>
+                            <strong>提示：</strong>配置词嵌入模型后，您的所有对话将自动具备 RAG 知识库检索增强能力。
+                            需要支持 Embedding API 的模型（如 Deepseek、Qwen 等）。
+                        </div>
+
+                        <!-- 已保存配置下拉选择 -->
+                        <div class="card mb-3">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <h6 class="mb-0"><i class="fas fa-list me-1"></i> 已保存配置</h6>
+                                    <button class="btn btn-sm btn-outline-success" id="embedToggleAddBtn">
+                                        <i class="fas fa-plus me-1"></i> 新增
+                                    </button>
+                                </div>
+                                <div class="d-flex gap-2 mb-2">
+                                    <select id="embedConfigSelect" class="form-select form-select-sm" style="flex:1;">
+                                        <option value="">— 暂无可用配置 —</option>
+                                    </select>
+                                    <button class="btn btn-outline-primary btn-sm" id="embedEditBtn" title="编辑选中配置">
+                                        <i class="fas fa-pen"></i>
+                                    </button>
+                                    <button class="btn btn-success btn-sm" id="embedActivateBtn" title="启用此模型">
+                                        <i class="fas fa-check me-1"></i>启用
+                                    </button>
+                                    <button class="btn btn-outline-danger btn-sm" id="embedDeleteBtn" title="删除此配置">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                                <div id="embedSelectHint" class="form-text small text-muted"></div>
+                            </div>
+                        </div>
+
+                        <!-- 新增/编辑表单 -->
+                        <div id="embedAddForm" style="display:none;">
+                            <div class="card">
+                                <div class="card-header bg-light">
+                                    <h6 class="mb-0"><i class="fas fa-edit me-1"></i> 配置信息</h6>
+                                </div>
+                                <div class="card-body">
+                                    <input type="hidden" id="embedEditId">
+
+                                    <!-- 配置名称 -->
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold">
+                                            <i class="fas fa-tag me-1"></i> 配置名称 <span class="text-danger">*</span>
+                                        </label>
+                                        <input type="text" id="embedName" class="form-control"
+                                               placeholder="如：Deepseek Embedding">
+                                    </div>
+
+                                    <!-- 模型系列 -->
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold">
+                                            <i class="fas fa-layer-group me-1"></i> 模型系列
+                                        </label>
+                                        <select id="embedModelType" class="form-select">
+                                            <option value="openai_compatible">🤖 OpenAI 兼容（如 Deepseek / Qwen）</option>
+                                            <option value="ollama">💻 Ollama 本地模型</option>
+                                        </select>
+                                    </div>
+
+                                    <!-- Base URL -->
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold">
+                                            <i class="fas fa-link me-1"></i> Base URL <span class="text-danger">*</span>
+                                        </label>
+                                        <input type="text" id="embedBaseUrl" class="form-control"
+                                               placeholder="https://api.deepseek.com">
+                                        <div id="embedBaseUrlHint" class="form-text small text-muted">
+                                            Deepseek: <code>https://api.deepseek.com</code><br>
+                                            Qwen/DashScope: <code>https://dashscope.aliyuncs.com/compatible-mode</code>
+                                        </div>
+                                    </div>
+
+                                    <!-- API Key -->
+                                    <div class="mb-3" id="embedApiKeyGroup">
+                                        <label class="form-label fw-semibold">
+                                            <i class="fas fa-key me-1"></i> API Key <span class="text-danger">*</span>
+                                        </label>
+                                        <input type="password" id="embedApiKey" class="form-control"
+                                               placeholder="输入 API Key">
+                                    </div>
+
+                                    <!-- 模型名称 -->
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold">
+                                            <i class="fas fa-brain me-1"></i> 模型名称 <span class="text-danger">*</span>
+                                        </label>
+                                        <input type="text" id="embedModel" class="form-control"
+                                               placeholder="text-embedding-3-small">
+                                        <div id="embedModelHint" class="form-text small text-muted">
+                                            Deepseek: <code>text-embedding-3-small</code><br>
+                                            Qwen: <code>text-embedding-v3</code>
+                                        </div>
+                                    </div>
+
+                                    <!-- 测试结果 -->
+                                    <div id="embedTestResult" class="alert mb-0" style="display:none;"></div>
+                                </div>
+                                <div class="card-footer d-flex justify-content-end gap-2">
+                                    <button class="btn btn-outline-secondary btn-sm" id="embedTestBtn">
+                                        <i class="fas fa-wifi me-1"></i> 测试连接
+                                    </button>
+                                    <button class="btn btn-primary btn-sm" id="embedSaveBtn">
+                                        <i class="fas fa-save me-1"></i> 保存
+                                    </button>
+                                    <button class="btn btn-outline-secondary btn-sm" id="embedCancelAddBtn">取消</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 初始化Qdrant集合Modal -->
+        <div class="modal fade" id="initQdrantModal" tabindex="-1" aria-labelledby="initQdrantModalLabel" aria-hidden="true"
+             data-bs-backdrop="static" data-bs-keyboard="false">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="initQdrantModalLabel">
+                            <i class="fas fa-cog me-2 text-info"></i> 初始化Qdrant集合
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="关闭"></button>
+                    </div>
+                    <div class="modal-body">
+                        <!-- 说明 -->
+                        <div class="alert alert-info mb-4">
+                            <i class="fas fa-info-circle me-1"></i>
+                            <strong>提示：</strong>初始化Qdrant集合将为您创建一个专属的向量库，用于存储和检索文档嵌入。
+                            请确保您已经配置并启用了词嵌入模型。
+                        </div>
+
+                        <!-- 状态显示 -->
+                        <div id="initQdrantStatus" class="mb-4">
+                            <div class="text-center py-3">
+                                <i class="fas fa-spinner fa-spin me-2"></i> 检查当前状态...
+                            </div>
+                        </div>
+
+                        <!-- 操作结果 -->
+                        <div id="initQdrantResult" class="alert" style="display:none;"></div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                        <button type="button" class="btn btn-info" id="initQdrantConfirmBtn" disabled>
+                            <i class="fas fa-check-circle me-1"></i> 初始化集合
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    <!-- Bootstrap JS Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- jQuery (简化AJAX) -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <!-- 自定义脚本 -->
+    <script>
+
+        // ========== 历史要闻全局函数（必须在 $(document).ready 外部定义）==========
+
+        // HTML转义
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // 根据分类名返回 Bootstrap badge 类名（全局，供 loadNews / showNewsDetail 共用）
+        function getCategoryBadgeClass(category) {
+            const map = {
+                '政治': 'bg-danger',
+                '军事': 'bg-dark',
+                '经济': 'bg-success',
+                '科技': 'bg-info',
+                '金融': 'bg-warning text-dark',
+                '产业': 'bg-primary',
+                '文化': 'bg-purple',
+                '综合': 'bg-secondary'
+            };
+            return map[category] || 'bg-secondary';
+        }
+
+        // ✅ 退出登录（全局函数，供onclick直接调用）
+        function doLogout() {
+            console.log('logout clicked');
+            // 先获取token
+            const token = sessionStorage.getItem('token') || localStorage.getItem('token');
+            // 先调用logout接口，成功后再清空缓存
+            $.ajax({
+                url: '/logout',
+                type: 'GET',
+                headers: {
+                    'Authorization': 'Bearer ' + token
+                },
+                success: function() {
+                    // 接口调用成功后再清空缓存
+                    clearUserData();
+                    // 跳转到登录页
+                    window.location.href = '/login';
+                },
+                error: function() {
+                    // 即使接口失败也清空缓存并跳转
+                    clearUserData();
+                    window.location.href = '/login';
+                }
+            });
+        }
+
+        // ✅ 清空用户所有前端缓存（logout / token过期时调用）
+        function clearUserData() {
+            sessionStorage.removeItem('token');
+            localStorage.removeItem('token');
+            sessionStorage.clear();
+            console.log('前端用户缓存已清理');
+        }
+
+        // 加载历史要闻（按时间线）
+        function loadNewsHistory() {
+            $('#historyList').html('<div class="text-center py-4 text-muted"><i class="fas fa-spinner fa-spin me-2"></i> 加载中...</div>');
+            $.get('/api/news/history', function(res) {
+                if (!res.success || !res.data || res.data.length === 0) {
+                    $('#historyList').html('<div class="text-center py-4 text-muted">暂无历史要闻</div>');
+                    return;
+                }
+                let html = '';
+                    res.data.forEach(item => {
+                        const dateStr = item.queryTime || new Date(item.queryTimestamp * 1000).toLocaleString();
+                        const previewTitles = (item.news || []).slice(0, 3).map((n, i) =>
+                            `<div class="small text-muted ms-3">${i + 1}. ${escapeHtml(n.title || n.content || '').substring(0, 50)}...</div>`
+                        ).join('');
+                        const moreCount = (item.newsCount || 0) - 3;
+                        const newsId = item.idStr || item.id;
+                        html += `
+                            <div class="list-group-item">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <span class="badge bg-success">要闻</span>
+                                        <span class="badge bg-secondary">${item.newsCount || 0}条</span>
+                                        <small class="text-muted ms-2">${dateStr}</small>
+                                    </div>
+                                    <button class="btn btn-sm btn-primary" onclick="showNewsDetail('${newsId}')">
+                                        <i class="fas fa-eye me-1"></i> 查看
+                                    </button>
+                                </div>
+                                <div class="mt-2 small">${previewTitles}</div>
+                                ${moreCount > 0 ? `<div class="small text-muted ms-3">...还有 ${moreCount} 条</div>` : ''}
+                            </div>
+                        `;
+                    });
+                $('#historyList').html(html);
+            }).fail(function() {
+                $('#historyList').html('<div class="text-center py-4 text-muted">加载失败</div>');
+            });
+        }
+
+        // 显示要闻详情弹框
+        function showNewsDetail(newsId) {
+            $.get('/api/news/' + newsId, function(res) {
+                if (!res.success || !res.data) {
+                    alert('获取详情失败');
+                    return;
+                }
+                const news = res.data;
+                let html = `
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h6 class="mb-0"><i class="fas fa-newspaper me-2"></i>${news.queryTime || ''}</h6>
+                            <span class="badge bg-secondary">${news.newsCount || 0}条新闻</span>
+                        </div>
+                    </div>
+                    <div style="max-height: 500px; overflow-y: auto;">
+                `;
+                (news.news || []).forEach((item, index) => {
+                    html += `
+                        <div class="card mb-2">
+                            <div class="card-body py-2">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <h6 class="mb-1 text-primary flex-grow-1">${index + 1}. ${escapeHtml(item.title || '')}</h6>
+                                    ${item.category ? `<span class="badge ${getCategoryBadgeClass(item.category)} ms-2" style="font-size:0.7rem;">${escapeHtml(item.category)}</span>` : ''}
+                                    ${item.source ? `<small class="text-muted ms-2">${escapeHtml(item.source)}</small>` : ''}
+                                </div>
+                                <p class="mb-1 small">${escapeHtml(item.content || '')}</p>
+                                ${item.url ? `<a href="${escapeHtml(item.url)}" target="_blank" class="small"><i class="fas fa-link me-1"></i>查看原文</a>` : ''}
+                            </div>
+                        </div>
+                    `;
+                });
+                html += '</div>';
+
+                const modalHtml = `
+                    <div class="modal fade" id="newsDetailModal" tabindex="-1">
+                        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title"><i class="fas fa-newspaper me-2"></i>要闻详情</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body">${html}</div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-outline-danger btn-sm" onclick="deleteNews('${newsId}')">
+                                        <i class="fas fa-trash me-1"></i>删除此记录
+                                    </button>
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                $('#newsDetailModal').remove();
+                $('body').append(modalHtml);
+                const modal = new bootstrap.Modal($('#newsDetailModal'));
+                modal.show();
+
+                $('#newsDetailModal').on('hidden.bs.modal', function() {
+                    $(this).remove();
+                });
+            }).fail(function() {
+                alert('获取详情失败');
+            });
+        }
+
+        // 删除要闻记录
+        function deleteNews(newsId) {
+            if (!confirm('确定要删除这条要闻记录吗？')) return;
+            $.ajax({
+                url: '/api/news/' + newsId,
+                type: 'DELETE',
+                success: function(res) {
+                    if (res.success) {
+                        alert('删除成功');
+                        $('#newsDetailModal').modal('hide');
+                        loadNewsHistory();
+                    } else {
+                        alert('删除失败: ' + res.error);
+                    }
+                }
+            });
+        }
+
+        // 复制消息内容
+        function copyMessageContent(btn) {
+            const msgDiv = $(btn).closest('.message');
+            // 获取原始文本内容（去掉HTML标签）
+            const text = msgDiv.clone()
+                .children('.message-actions').remove().end()
+                .text()
+                .trim();
+            navigator.clipboard.writeText(text).then(function() {
+                // 显示复制成功提示
+                const icon = $(btn).find('i');
+                icon.removeClass('fa-copy').addClass('fa-check text-success');
+                setTimeout(() => icon.removeClass('fa-check text-success').addClass('fa-copy'), 1500);
+            }).catch(function() {
+                // 降级方案
+                const textarea = $('<textarea>').val(text).css({position:'fixed',left:'-9999px'}).appendTo('body');
+                textarea[0].select();
+                document.execCommand('copy');
+                textarea.remove();
+            });
+        }
+
+        // ========== $(document).ready 入口 ==========
+        $(document).ready(function() {
+            // 全局变量
+            const chatMessages = $('#chatMessages');
+            const messageInput = $('#messageInput');
+            const sendButton = $('#sendButton');
+            const newsContent = $('#newsContent');
+            const refreshNews = $('#refreshNews');
+            const weatherContent = $('#weatherContent');
+            const cityInput = $('#cityInput');
+            const queryWeather = $('#queryWeather');
+            const sessionsList = $('#sessionsList');
+            const sessionCount = $('#sessionCount');
+            const newSessionBtn = $('#newSessionBtn');
+            const currentSessionTitle = $('#currentSessionTitle');
+            const currentSessionIdDisplay = $('#currentSessionIdDisplay');
+            const currentSessionIndicator = $('#currentSessionIndicator');
+            const toggleStreamBtn = $('#toggleStreamBtn');
+            const toggleRagBtn = $('#toggleRagBtn');
+            
+            // 应用状态
+            let currentSessionId = null;
+            let userSessions = [];
+            let isStreamMode = true; // 默认开启流式模式
+            let isRagEnabled = false; // 默认关闭知识库功能
+            let eventSource = null;
+
+            // 初始化应用
+            function initApp() {
+                // 从隐藏字段获取token（登录后服务器设置）
+                const sessionToken = $('#token').val();
+                if (sessionToken && sessionToken !== 'null' && sessionToken.trim() !== '') {
+                    // ✅ 只有有效的 token 才写入存储（避免 null 字符串覆盖旧 token）
+                    storeToken(sessionToken);
+                    console.log('Token loaded from hidden field:', sessionToken);
+                }
+                // 如果没有 sessionToken，保留 localStorage 中已有的 token（浏览器刷新场景）
+                
+                // 设置全局AJAX请求头，携带token
+                $.ajaxSetup({
+                    beforeSend: function(xhr) {
+                        const token = getToken();
+                        if (token && token !== 'null' && token.trim() !== '') {
+                            xhr.setRequestHeader('Authorization', 'Bearer ' + token);
+                        }
+                    }
+                });
+                
+                // 加载会话列表
+                loadSessions();
+                
+                // 设置事件监听器
+                setupEventListeners();
+                
+                // 从服务器获取当前会话ID（从Thymeleaf属性）
+                const serverSessionId = $('#currentSessionId').val();
+                if (serverSessionId) {
+                    currentSessionId = serverSessionId;
+                    updateCurrentSessionDisplay();
+                }
+                
+                // 加载LLM配置列表
+                loadLLMConfigs();
+            }
+
+            // 设置事件监听器
+            function setupEventListeners() {
+                // 发送消息
+                sendButton.click(sendMessage);
+                messageInput.keypress(function(e) {
+                    if (e.which === 13 && !e.shiftKey) {
+                        e.preventDefault();
+                        sendMessage();
+                    }
+                });
+
+                // 刷新新闻
+                refreshNews.click(loadNews);
+
+                // 查询天气
+                queryWeather.click(function() {
+                    loadWeather(cityInput.val());
+                });
+                
+                // 新建会话 — 打开Modal
+                newSessionBtn.click(function() {
+                    $('#newSessionTitle').val('');
+                    $('#newSessionFirstMsg').val('');
+                    new bootstrap.Modal('#newSessionModal').show();
+                });
+                
+                // 确认新建会话
+                $('#confirmNewSession').click(function() {
+                    const title = $('#newSessionTitle').val().trim();
+                    const firstMessage = $('#newSessionFirstMsg').val().trim();
+                    bootstrap.Modal.getInstance('#newSessionModal').hide();
+                    createNewSession(title, firstMessage);
+                });
+                
+                // 切换流式模式
+                toggleStreamBtn.click(function() {
+                    isStreamMode = !isStreamMode;
+                    if (isStreamMode) {
+                        toggleStreamBtn.removeClass('btn-secondary').addClass('btn-warning');
+                        toggleStreamBtn.html('<i class="fas fa-bolt me-1"></i> 流式中');
+                        $('#streamStatus').html('<i class="fas fa-bolt text-warning"></i>');
+                    } else {
+                        toggleStreamBtn.removeClass('btn-warning').addClass('btn-secondary');
+                        toggleStreamBtn.html('<i class="fas fa-bolt me-1"></i> 非流式');
+                        $('#streamStatus').html('<i class="fas fa-pause text-muted"></i>');
+                    }
+                    showToast(isStreamMode ? '已启用流式对话模式' : '已禁用流式对话模式');
+                });
+                
+                // 切换知识库功能
+                toggleRagBtn.click(function() {
+                    isRagEnabled = !isRagEnabled;
+                    if (isRagEnabled) {
+                        toggleRagBtn.removeClass('btn-outline-primary').addClass('btn-primary');
+                        toggleRagBtn.html('<i class="fas fa-database me-1"></i> 知识库已开启');
+                    } else {
+                        toggleRagBtn.removeClass('btn-primary').addClass('btn-outline-primary');
+                        toggleRagBtn.html('<i class="fas fa-database me-1"></i> 知识库');
+                    }
+                    showToast(isRagEnabled ? '已启用知识库功能' : '已禁用知识库功能');
+                });
+
+                // 初始化流式按钮样式（默认开启）
+                if (isStreamMode) {
+                    toggleStreamBtn.removeClass('btn-secondary').addClass('btn-warning');
+                    toggleStreamBtn.html('<i class="fas fa-bolt me-1"></i> 流式中');
+                }
+                
+                // 初始化知识库按钮样式（默认关闭）
+                if (isRagEnabled) {
+                    toggleRagBtn.removeClass('btn-outline-primary').addClass('btn-primary');
+                    toggleRagBtn.html('<i class="fas fa-database me-1"></i> 知识库已开启');
+                }
+
+                // ========== RAG 知识库 ==========
+                let ragFiles = [];  // 当前扫描到的文件列表
+
+                // 打开RAG弹框
+                $('#openRagBtn').click(function() {
+                    $('#ragDirectoryInput').val('');
+                    $('#ragFileListArea').hide();
+                    $('#ragResultArea').hide();
+                    $('#ragImportBtn').prop('disabled', true);
+                    ragFiles = [];
+                    loadRagStats();
+                    new bootstrap.Modal('#ragModal').show();
+                });
+
+                // 加载RAG统计信息
+                function loadRagStats() {
+                    $.get('/api/rag/stats', function(res) {
+                        if (res.success) {
+                            $('#ragImportedCount').text(res.stats.importedFiles || 0);
+                        }
+                    });
+                }
+
+                // 扫描目录
+                $('#ragScanBtn').click(function() {
+                    const dir = $('#ragDirectoryInput').val().trim();
+                    if (!dir) {
+                        showToast('请输入目录路径', true);
+                        return;
+                    }
+
+                    const btn = $(this);
+                    btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i> 扫描中...');
+
+                    $.get('/api/rag/scan', { directoryPath: dir }, function(res) {
+                        btn.prop('disabled', false).html('<i class="fas fa-search me-1"></i> 扫描');
+
+                        if (res.success) {
+                            ragFiles = res.files || [];
+                            $('#ragFileCount').text(ragFiles.length);
+                            renderRagFileList();
+                            $('#ragFileListArea').show();
+                            $('#ragImportBtn').prop('disabled', ragFiles.length === 0);
+                        } else {
+                            showToast(res.error || '扫描失败', true);
+                            $('#ragFileListArea').hide();
+                        }
+                    }).fail(function() {
+                        btn.prop('disabled', false).html('<i class="fas fa-search me-1"></i> 扫描');
+                        showToast('扫描请求失败', true);
+                    });
+                });
+
+                // 渲染文件列表
+                function renderRagFileList() {
+                    let html = '';
+                    ragFiles.forEach((file, index) => {
+                        const size = (file.size / 1024).toFixed(1);
+                        const importedClass = file.imported ? 'list-group-item-info' : '';
+                        const importedBadge = file.imported ? '<span class="badge bg-secondary ms-2">已导入</span>' : '';
+                        html += `
+                            <label class="list-group-item ${importedClass}" style="cursor:pointer;">
+                                <input type="checkbox" class="rag-file-check me-2" value="${index}" ${file.imported ? 'disabled' : ''}>
+                                <i class="fas fa-file-code me-1 text-muted"></i>
+                                ${escapeHtml(file.name)}
+                                ${importedBadge}
+                                <small class="text-muted ms-auto">${size} KB</small>
+                            </label>
+                        `;
+                    });
+                    $('#ragFileList').html(html || '<div class="text-center py-3 text-muted">目录下没有支持的文件</div>');
+                    updateRagImportBtn();
+                }
+
+                // 更新导入按钮状态
+                function updateRagImportBtn() {
+                    const selected = $('.rag-file-check:checked:not(:disabled)').length;
+                    $('#ragImportBtn').prop('disabled', selected === 0)
+                        .html(selected > 0 ?
+                            `<i class="fas fa-upload me-1"></i> 导入选中文件 (${selected})` :
+                            '<i class="fas fa-upload me-1"></i> 导入选中文件');
+                }
+
+                // 全选/取消
+                $('#ragSelectAll').click(function() {
+                    $('.rag-file-check:not(:disabled)').prop('checked', true);
+                    updateRagImportBtn();
+                });
+                $('#ragDeselectAll').click(function() {
+                    $('.rag-file-check').prop('checked', false);
+                    updateRagImportBtn();
+                });
+
+                // 文件选择变化时更新按钮
+                $(document).on('change', '.rag-file-check', updateRagImportBtn);
+
+                // 导入选中文件
+                $('#ragImportBtn').click(function() {
+                    const selected = $('.rag-file-check:checked:not(:disabled)');
+                    if (selected.length === 0) return;
+
+                    const filePaths = [];
+                    selected.each(function() {
+                        const index = parseInt($(this).val());
+                        filePaths.push(ragFiles[index].path);
+                    });
+
+                    const btn = $(this);
+                    btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i> 导入中...');
+
+                    $.ajax({
+                        url: '/api/rag/import',
+                        type: 'POST',
+                        contentType: 'application/json',
+                        data: JSON.stringify({ files: filePaths }),
+                        success: function(res) {
+                            btn.prop('disabled', false).html('<i class="fas fa-upload me-1"></i> 导入选中文件');
+
+                            if (res.success) {
+                                const result = res.importResult;
+                                let msg = `导入完成：成功 ${result.success} 个`;
+                                if (result.skipped > 0) msg += `，跳过 ${result.skipped} 个`;
+                                if (result.errors && result.errors.length > 0) {
+                                    msg += `，失败 ${result.errors.length} 个`;
+                                }
+
+                                $('#ragResultArea')
+                                    .removeClass('alert-danger')
+                                    .addClass('alert alert-success')
+                                    .html('<i class="fas fa-check-circle me-1"></i> ' + msg)
+                                    .show();
+
+                                // 更新统计
+                                if (res.stats) {
+                                    $('#ragImportedCount').text(res.stats.importedFiles || 0);
+                                }
+
+                                // 重新扫描
+                                $('#ragScanBtn').click();
+                            } else {
+                                $('#ragResultArea')
+                                    .removeClass('alert-success')
+                                    .addClass('alert alert-danger')
+                                    .html('<i class="fas fa-times-circle me-1"></i> ' + (res.error || '导入失败'))
+                                    .show();
+                            }
+                        },
+                        error: function() {
+                            btn.prop('disabled', false).html('<i class="fas fa-upload me-1"></i> 导入选中文件');
+                            $('#ragResultArea')
+                                .removeClass('alert-success')
+                                .addClass('alert alert-danger')
+                                .html('<i class="fas fa-times-circle me-1"></i> 导入请求失败')
+                                .show();
+                        }
+                    });
+                });
+
+                // ========== 词嵌入配置 ==========
+                let embedConfigs = [];  // 当前配置列表
+                let embedModalCurrentReqId = null;  // 追踪当前请求ID
+
+                /** 根据模型类型更新 placeholder 和提示信息（不清空用户已输入的内容） */
+                function onEmbedTypeChange() {
+                    const type = $('#embedModelType').val();
+                    if (type === 'ollama') {
+                        $('#embedApiKeyGroup').hide();
+                        $('#embedBaseUrl').attr('placeholder', 'http://localhost:11434');
+                        $('#embedModel').attr('placeholder', 'qwen3-embedding:8b');
+                        $('#embedBaseUrlHint').html('<code>http://localhost:11434</code>（Ollama 本地服务，无需 API Key）');
+                        $('#embedModelHint').html('推荐: <code>qwen3-embedding:8b</code>（需先在 Ollama 中拉取该模型）');
+                    } else {
+                        $('#embedApiKeyGroup').show();
+                        $('#embedBaseUrl').attr('placeholder', 'https://api.deepseek.com');
+                        $('#embedModel').attr('placeholder', 'text-embedding-3-small');
+                        $('#embedBaseUrlHint').html(
+                            'Deepseek: <code>https://api.deepseek.com</code><br>' +
+                            'Qwen/DashScope: <code>https://dashscope.aliyuncs.com/compatible-mode</code>'
+                        );
+                        $('#embedModelHint').html(
+                            'Deepseek: <code>text-embedding-3-small</code><br>' +
+                            'Qwen: <code>text-embedding-v3</code>'
+                        );
+                    }
+                }
+
+                // 绑定类型切换事件
+                $('#embedModelType').on('change', onEmbedTypeChange);
+
+                // 打开词嵌入配置弹框
+                $('#openEmbedConfigBtn').click(function() {
+                    // 重置表单状态
+                    $('#embedAddForm').hide();
+                    $('#embedTestResult').hide();
+                    $('#embedSelectHint').text('');
+                    loadEmbedConfigs();
+                    new bootstrap.Modal('#embedConfigModal').show();
+                });
+
+                // 切换新增表单
+                $('#embedToggleAddBtn').click(function() {
+                    const form = $('#embedAddForm');
+                    if (form.is(':visible')) {
+                        form.hide();
+                        $('#embedTestResult').hide();
+                    } else {
+                        // 重置表单
+                        $('#embedEditId').val('');
+                        $('#embedName').val('');
+                        $('#embedModelType').val('openai_compatible');
+                        $('#embedApiKey').val('');
+                        $('#embedTestResult').hide();
+                        onEmbedTypeChange();  // 根据类型自动填充默认值
+                        form.show();
+                    }
+                });
+
+                // 取消新增
+                $('#embedCancelAddBtn').click(function() {
+                    $('#embedAddForm').hide();
+                    $('#embedTestResult').hide();
+                });
+
+                // 加载配置列表
+                function loadEmbedConfigs() {
+                    $.get('/api/embedding/list', function(res) {
+                        embedConfigs = res.configs || [];
+                        const activeId = res.activeId || '';
+
+                        const select = $('#embedConfigSelect');
+                        select.empty();
+
+                        if (embedConfigs.length === 0) {
+                            select.append('<option value="">— 暂无可用配置 —</option>');
+                            $('#embedSelectHint').text('请新增一个词嵌入配置');
+                            $('#embedActivateBtn').prop('disabled', true);
+                            $('#embedDeleteBtn').prop('disabled', true);
+                        } else {
+                            embedConfigs.forEach(cfg => {
+                                const selected = cfg.id === activeId ? 'selected' : '';
+                                const typeTag = cfg.modelType === 'ollama' ? '[Ollama]' : '[API]';
+                                select.append(`<option value="${cfg.id}" ${selected}>${typeTag} ${cfg.name || cfg.model}</option>`);
+                            });
+                            $('#embedSelectHint').text(activeId ? '已启用配置：' + embedConfigs.find(c => c.id === activeId)?.name : '未启用任何配置');
+                            $('#embedActivateBtn').prop('disabled', false);
+                            $('#embedDeleteBtn').prop('disabled', false);
+                        }
+                    });
+                }
+
+                // 测试连接
+                $('#embedTestBtn').click(function() {
+                    const reqId = Date.now().toString();
+                    embedModalCurrentReqId = reqId;
+
+                    const modelType = $('#embedModelType').val();
+                    const baseUrl = $('#embedBaseUrl').val().trim();
+                    const apiKey = $('#embedApiKey').val().trim();
+                    const model = $('#embedModel').val().trim();
+
+                    if (!baseUrl || !model) {
+                        showToast('请填写完整的配置信息', true);
+                        return;
+                    }
+                    if (modelType !== 'ollama' && !apiKey) {
+                        showToast('API Key 不能为空', true);
+                        return;
+                    }
+
+                    const btn = $(this);
+                    btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i> 测试中...');
+
+                    const config = { baseUrl, apiKey, model };
+
+                    $.ajax({
+                        url: '/api/embedding/test',
+                        type: 'POST',
+                        contentType: 'application/json',
+                        data: JSON.stringify(config),
+                        success: function(res) {
+                            if (embedModalCurrentReqId !== reqId) return;  // 忽略过期请求
+
+                            btn.prop('disabled', false).html('<i class="fas fa-wifi me-1"></i> 测试连接');
+                            $('#embedTestResult').show();
+
+                            if (res.success) {
+                                $('#embedTestResult')
+                                    .removeClass('alert-danger')
+                                    .addClass('alert alert-success')
+                                    .html('<i class="fas fa-check-circle me-1"></i> ' + res.message);
+                            } else {
+                                $('#embedTestResult')
+                                    .removeClass('alert-success')
+                                    .addClass('alert alert-danger')
+                                    .html('<i class="fas fa-times-circle me-1"></i> ' + res.message);
+                            }
+                        },
+                        error: function(xhr) {
+                            if (embedModalCurrentReqId !== reqId) return;
+                            btn.prop('disabled', false).html('<i class="fas fa-wifi me-1"></i> 测试连接');
+                            $('#embedTestResult').show()
+                                .removeClass('alert-success')
+                                .addClass('alert alert-danger')
+                                .html('<i class="fas fa-times-circle me-1"></i> 请求失败: ' + (xhr.responseText || '网络错误'));
+                        }
+                    });
+                });
+
+                // 保存配置
+                $('#embedSaveBtn').click(function() {
+                    const reqId = Date.now().toString();
+                    embedModalCurrentReqId = reqId;
+
+                    const modelType = $('#embedModelType').val();
+                    const name = $('#embedName').val().trim();
+                    const baseUrl = $('#embedBaseUrl').val().trim();
+                    const apiKey = $('#embedApiKey').val().trim();
+                    const model = $('#embedModel').val().trim();
+
+                    if (!name || !baseUrl || !model) {
+                        showToast('请填写完整的配置信息', true);
+                        return;
+                    }
+                    if (modelType !== 'ollama' && !apiKey) {
+                        showToast('API Key 不能为空', true);
+                        return;
+                    }
+
+                    const btn = $(this);
+                    const originalText = btn.html();
+                    btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i> 保存中...');
+
+                    const config = {
+                        id: $('#embedEditId').val() || null,
+                        modelType, name, baseUrl, apiKey, model
+                    };
+
+                    $.ajax({
+                        url: '/api/embedding/save',
+                        type: 'POST',
+                        contentType: 'application/json',
+                        data: JSON.stringify(config),
+                        success: function(res) {
+                            if (embedModalCurrentReqId !== reqId) return;
+
+                            btn.prop('disabled', false).html(originalText);
+                            if (res.success) {
+                                showToast('配置保存成功');
+                                $('#embedAddForm').hide();
+                                loadEmbedConfigs();
+                            } else {
+                                showToast('保存失败: ' + (res.error || '未知错误'), true);
+                            }
+                        },
+                        error: function(xhr) {
+                            if (embedModalCurrentReqId !== reqId) return;
+                            btn.prop('disabled', false).html(originalText);
+                            showToast('保存请求失败: ' + (xhr.responseText || '网络错误'), true);
+                        }
+                    });
+                });
+
+                // 启用配置
+                $('#embedActivateBtn').click(function() {
+                    const select = $('#embedConfigSelect');
+                    const configId = select.val();
+                    if (!configId) return;
+
+                    const btn = $(this);
+                    btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i> 启用中...');
+
+                    $.ajax({
+                        url: '/api/embedding/activate?configId=' + encodeURIComponent(configId),
+                        type: 'POST',
+                        success: function(res) {
+                            btn.prop('disabled', false).html('<i class="fas fa-check me-1"></i>启用');
+                            if (res.success) {
+                                showToast('配置启用成功');
+                                loadEmbedConfigs();
+                            } else {
+                                showToast('启用失败', true);
+                            }
+                        },
+                        error: function() {
+                            btn.prop('disabled', false).html('<i class="fas fa-check me-1"></i>启用');
+                            showToast('启用请求失败', true);
+                        }
+                    });
+                });
+
+                // 编辑配置
+                $('#embedEditBtn').click(function() {
+                    const select = $('#embedConfigSelect');
+                    const configId = select.val();
+                    if (!configId) { showToast('请先选择一个配置'); return; }
+                    const cfg = embedConfigs.find(c => c.id === configId);
+                    if (!cfg) return;
+
+                    $('#embedEditId').val(cfg.id);
+                    $('#embedName').val(cfg.name || '');
+                    $('#embedModelType').val(cfg.modelType || 'openai_compatible');
+                    onEmbedTypeChange();  // 更新 UI（API Key 显隐等）
+                    $('#embedBaseUrl').val(cfg.baseUrl || '');
+                    $('#embedApiKey').val(cfg.apiKey || '');  // 不回填，需要重输
+                    $('#embedModel').val(cfg.model || '');
+                    $('#embedTestResult').hide();
+                    $('#embedAddForm').slideDown(200);
+                });
+
+                // 删除配置
+                $('#embedDeleteBtn').click(function() {
+                    const select = $('#embedConfigSelect');
+                    const configId = select.val();
+                    if (!configId) return;
+
+                    if (!confirm('确定要删除这个词嵌入配置吗？')) return;
+
+                    const btn = $(this);
+                    btn.prop('disabled', true);
+
+                    $.ajax({
+                        url: '/api/embedding/delete?configId=' + encodeURIComponent(configId),
+                        type: 'DELETE',
+                        success: function(res) {
+                            btn.prop('disabled', false);
+                            if (res.success) {
+                                showToast('配置已删除');
+                                loadEmbedConfigs();
+                            } else {
+                                showToast('删除失败', true);
+                            }
+                        },
+                        error: function() {
+                            btn.prop('disabled', false);
+                            showToast('删除请求失败', true);
+                        }
+                    });
+                });
+
+                // ========== 初始化Qdrant集合 ==========
+                
+                // 打开初始化Qdrant集合弹框
+                $('#initQdrantBtn').click(function() {
+                    $('#initQdrantStatus').html('<div class="text-center py-3"><i class="fas fa-spinner fa-spin me-2"></i> 检查当前状态...</div>');
+                    $('#initQdrantResult').hide();
+                    $('#initQdrantConfirmBtn').prop('disabled', true);
+                    
+                    // 检查当前状态
+                    checkQdrantStatus();
+                    
+                    new bootstrap.Modal('#initQdrantModal').show();
+                });
+
+                // 检查Qdrant集合状态
+                function checkQdrantStatus() {
+                    $.get('/api/rag/qdrant/status', function(res) {
+                        if (res.success) {
+                            if (res.initialized) {
+                                $('#initQdrantStatus').html(`
+                                    <div class="text-center py-3">
+                                        <i class="fas fa-check-circle text-success me-2"></i> 已初始化
+                                    </div>
+                                    <div class="text-center small text-muted">
+                                        集合名称: ${res.collectionName}<br>
+                                        状态: 可使用RAG知识库能力
+                                    </div>
+                                `);
+                                $('#initQdrantConfirmBtn').prop('disabled', true).html('<i class="fas fa-check-circle me-1"></i> 已初始化');
+                            } else {
+                                $('#initQdrantStatus').html(`
+                                    <div class="text-center py-3">
+                                        <i class="fas fa-exclamation-circle text-warning me-2"></i> 未初始化
+                                    </div>
+                                    <div class="text-center small text-muted">
+                                        点击下方按钮初始化您的专属Qdrant集合
+                                    </div>
+                                `);
+                                $('#initQdrantConfirmBtn').prop('disabled', false).html('<i class="fas fa-check-circle me-1"></i> 初始化集合');
+                            }
+                        } else {
+                            $('#initQdrantStatus').html(`
+                                <div class="text-center py-3">
+                                    <i class="fas fa-times-circle text-danger me-2"></i> 检查失败
+                                </div>
+                                <div class="text-center small text-danger">
+                                    ${res.error || '无法检查状态'}
+                                </div>
+                            `);
+                            $('#initQdrantConfirmBtn').prop('disabled', true);
+                        }
+                    }).fail(function() {
+                        $('#initQdrantStatus').html(`
+                            <div class="text-center py-3">
+                                <i class="fas fa-times-circle text-danger me-2"></i> 请求失败
+                            </div>
+                            <div class="text-center small text-danger">
+                                无法连接到服务器
+                            </div>
+                        `);
+                        $('#initQdrantConfirmBtn').prop('disabled', true);
+                    });
+                }
+
+                // 初始化Qdrant集合
+                $('#initQdrantConfirmBtn').click(function() {
+                    const btn = $(this);
+                    btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i> 初始化中...');
+                    $('#initQdrantResult').hide();
+
+                    $.ajax({
+                        url: '/api/rag/qdrant/init',
+                        type: 'POST',
+                        success: function(res) {
+                            btn.prop('disabled', true);
+                            if (res.success) {
+                                $('#initQdrantResult')
+                                    .removeClass('alert-danger')
+                                    .addClass('alert alert-success')
+                                    .html('<i class="fas fa-check-circle me-1"></i> ' + res.message)
+                                    .show();
+                                
+                                // 更新状态显示
+                                $('#initQdrantStatus').html(`
+                                    <div class="text-center py-3">
+                                        <i class="fas fa-check-circle text-success me-2"></i> 初始化成功
+                                    </div>
+                                    <div class="text-center small text-muted">
+                                        集合名称: ${res.collectionName}<br>
+                                        状态: 可使用RAG知识库能力
+                                    </div>
+                                `);
+                                
+                                btn.html('<i class="fas fa-check-circle me-1"></i> 已初始化');
+                                showToast('Qdrant集合初始化成功');
+                            } else {
+                                $('#initQdrantResult')
+                                    .removeClass('alert-success')
+                                    .addClass('alert alert-danger')
+                                    .html('<i class="fas fa-times-circle me-1"></i> ' + (res.error || '初始化失败'))
+                                    .show();
+                                btn.html('<i class="fas fa-check-circle me-1"></i> 初始化集合').prop('disabled', false);
+                            }
+                        },
+                        error: function() {
+                            btn.prop('disabled', false).html('<i class="fas fa-check-circle me-1"></i> 初始化集合');
+                            $('#initQdrantResult')
+                                .removeClass('alert-success')
+                                .addClass('alert alert-danger')
+                                .html('<i class="fas fa-times-circle me-1"></i> 初始化请求失败')
+                                .show();
+                        }
+                    });
+                });
+            }
+
+            // 加载会话列表
+            function loadSessions() {
+                sessionsList.html('<div class="text-center py-4 text-muted"><i class="fas fa-spinner fa-spin me-2"></i> 加载中...</div>');
+                
+                $.ajax({
+                    url: '/api/sessions',
+                    type: 'GET',
+                    headers: {
+                        'Authorization': 'Bearer ' + getToken()
+                    },
+                    success: function(data) {
+                        userSessions = data;
+                        sessionCount.text(data.length);
+                        
+                        if (data.length === 0) {
+                            sessionsList.html('<div class="text-center py-4 text-muted">暂无对话历史</div>');
+                            return;
+                        }
+                        
+                        let html = '';
+                        data.forEach(session => {
+                            const isActive = session.sessionId === currentSessionId;
+                            const date = new Date(session.lastMessageTime * 1000).toLocaleDateString();
+                            const time = new Date(session.lastMessageTime * 1000).toLocaleTimeString();
+                            
+                            html += `
+                                <div class="session-item ${isActive ? 'active' : ''}" data-session-id="${session.sessionId}">
+                                    <button class="session-delete-btn" data-session-id="${session.sessionId}" title="删除会话">
+                                        <i class="fas fa-times text-danger"></i>
+                                    </button>
+                                    <div class="session-title">
+                                        <span>${escapeHtml(session.title)}</span>
+                                        <span class="badge bg-secondary">${session.messageCount || 0}</span>
+                                    </div>
+                                    <div class="session-summary" title="${escapeHtml(session.summary || '无摘要')}">
+                                        ${escapeHtml(session.summary || '新对话')}
+                                    </div>
+                                    <div class="session-meta">
+                                        <span>${date}</span>
+                                        <span>${time}</span>
+                                    </div>
+                                </div>
+                            `;
+                        });
+                        
+                        sessionsList.html(html);
+                        
+                        // 设置会话点击事件
+                        $('.session-item').click(function(e) {
+                            if (!$(e.target).closest('.session-delete-btn').length) {
+                                const sessionId = $(this).data('session-id');
+                                switchSession(sessionId);
+                            }
+                        });
+                        
+                        // 设置删除按钮事件
+                        $('.session-delete-btn').click(function(e) {
+                            e.stopPropagation();
+                            const sessionId = $(this).data('session-id');
+                            deleteSession(sessionId);
+                        });
+                    },
+                    error: function(xhr) {
+                        if (xhr.status === 401) {
+                            // Token 无效或过期：清空缓存并跳转登录
+                            clearUserData();
+                            alert('登录已过期，请重新登录');
+                            window.location.href = '/login';
+                            return;
+                        }
+                        sessionsList.html('<div class="text-center py-4 text-muted">加载失败，请刷新重试</div>');
+                    }
+                });
+            }
+
+            // 创建新会话
+            function createNewSession(title, firstMessage) {
+                $.ajax({
+                    url: '/api/sessions/new',
+                    type: 'POST',
+                    headers: {
+                        'Authorization': 'Bearer ' + getToken()
+                    },
+                    data: {
+                        title: title || '',
+                        firstMessage: firstMessage || ''
+                    },
+                    success: function(data) {
+                        if (data.success) {
+                            currentSessionId = data.sessionId;
+                            updateCurrentSessionDisplay();
+                            loadSessions();
+                            clearChatMessages();
+                            showToast('已创建新对话: ' + data.session.title);
+                            
+                            // 如果有第一条消息，发送它
+                            if (firstMessage) {
+                                setTimeout(() => {
+                                    messageInput.val(firstMessage);
+                                    sendMessage();
+                                }, 500);
+                            }
+                        } else {
+                            alert('创建失败: ' + data.error);
+                        }
+                    },
+                    error: function() {
+                        alert('网络错误，请重试。');
+                    }
+                });
+
+    
+            }
+
+            // 切换会话
+            function switchSession(sessionId) {
+                if (sessionId === currentSessionId) {
+                    return;
+                }
+                
+                $.ajax({
+                    url: '/api/sessions/switch',
+                    type: 'POST',
+                    headers: {
+                        'Authorization': 'Bearer ' + getToken()
+                    },
+                    data: { sessionId: sessionId },
+                    success: function(data) {
+                        if (data.success) {
+                            currentSessionId = sessionId;
+                            updateCurrentSessionDisplay();
+                            loadSessions();
+                            clearChatMessages();
+                            showToast('已切换到: ' + data.session.title);
+                            
+                            // 加载该会话的历史消息
+                            loadSessionMessages(sessionId);
+                        } else {
+                            alert('切换失败: ' + data.error);
+                        }
+                    },
+                    error: function() {
+                        alert('网络错误，请重试。');
+                    }
+                });
+            }
+
+            // 加载指定会话的历史消息
+            function loadSessionMessages(sessionId) {
+                $.ajax({
+                    url: '/api/sessions/' + sessionId + '/messages',
+                    type: 'GET',
+                    headers: {
+                        'Authorization': 'Bearer ' + getToken()
+                    },
+                    success: function(messages) {
+                        if (!messages || messages.length === 0) {
+                            addMessage('暂无历史消息，开始新对话吧！', 'system');
+                            return;
+                        }
+                        messages.forEach(function(msg) {
+                            if (msg.role === 'user') {
+                                addMessage(msg.content, 'user');
+                            } else if (msg.role === 'assistant') {
+                                addMessage(msg.content, 'ai');
+                            }
+                        });
+                    },
+                    error: function() {
+                        addMessage('历史消息加载失败', 'system');
+                    }
+                });
+            }
+
+            // 删除会话
+            function deleteSession(sessionId) {
+                if (!confirm('确定要删除这个对话吗？删除后无法恢复。')) {
+                    return;
+                }
+                
+                $.ajax({
+                    url: '/api/sessions/' + sessionId,
+                    type: 'DELETE',
+                    headers: {
+                        'Authorization': 'Bearer ' + getToken()
+                    },
+                    success: function(data) {
+                        if (data.success) {
+                            loadSessions();
+                            showToast('对话已删除');
+                            
+                            // 如果删除的是当前会话，切换到新会话
+                            if (data.newSessionId) {
+                                currentSessionId = data.newSessionId;
+                                updateCurrentSessionDisplay();
+                            }
+                        } else {
+                            alert('删除失败: ' + data.error);
+                        }
+                    },
+                    error: function() {
+                        alert('网络错误，请重试。');
+                    }
+                });
+            }
+
+            // 更新当前会话显示
+            function updateCurrentSessionDisplay() {
+                const session = userSessions.find(s => s.sessionId === currentSessionId);
+                if (session) {
+                    currentSessionTitle.text(session.title);
+                    currentSessionIdDisplay.text(session.sessionId.substring(0, 8) + '...');
+                    currentSessionIndicator.show();
+                } else {
+                    currentSessionTitle.text('默认对话');
+                    currentSessionIdDisplay.text('未选择');
+                    currentSessionIndicator.hide();
+                }
+            }
+
+            // 清空聊天消息
+            function clearChatMessages() {
+                chatMessages.html('<div class="loading" id="chatLoading"><i class="fas fa-spinner fa-spin me-2"></i>等待您的消息...</div>');
+            }
+
+            // 发送消息
+            function sendMessage() {
+                const message = messageInput.val().trim();
+                if (!message) return;
+                
+                // 如果没有当前会话，先创建一个，再发消息（createNewSessionForMessage会处理完整流程）
+                if (!currentSessionId) {
+                    createNewSessionForMessage(message);
+                    return;
+                }
+                
+                // 有会话：添加用户消息 → 发请求
+                addMessage(message, 'user');
+                messageInput.val('');
+                sendButton.prop('disabled', true);
+                
+                if (isStreamMode) {
+                    sendStreamMessage(message);
+                } else {
+                    sendRegularMessage(message);
+                }
+            }
+
+            // 获取token
+            function getToken() {
+                // 从sessionStorage或localStorage获取token
+                return sessionStorage.getItem('token') || localStorage.getItem('token');
+            }
+
+            // 存储token
+            function storeToken(token) {
+                // ✅ 防御：拒绝写入 null/空值，防止覆盖有效的旧 token
+                if (token == null || token === 'null' || token.trim() === '') {
+                    console.warn('storeToken 拒绝写入无效值:', token);
+                    return;
+                }
+                sessionStorage.setItem('token', token);
+                localStorage.setItem('token', token);
+            }
+
+
+
+
+
+            // 为消息创建新会话（创建完成后自动发送消息，不在sendMessage中重复addMessage）
+            function createNewSessionForMessage(message) {
+                $.post('/api/sessions/new', {
+                    firstMessage: message
+                }, function(data) {
+                    if (data.success) {
+                        currentSessionId = data.sessionId;
+                        updateCurrentSessionDisplay();
+                        loadSessions();
+                        // 创建会话成功后，添加用户消息 → 发请求（不在sendMessage中重复执行）
+                        addMessage(message, 'user');
+                        messageInput.val('');
+                        sendButton.prop('disabled', true);
+                        if (isStreamMode) {
+                            sendStreamMessage(message);
+                        } else {
+                            sendRegularMessage(message);
+                        }
+                    } else {
+                        alert('创建会话失败: ' + data.error);
+                        sendButton.prop('disabled', false);
+                    }
+                }).fail(function() {
+                    alert('网络错误，请重试。');
+                    sendButton.prop('disabled', false);
+                });
+            }
+
+            // 发送普通消息
+            function sendRegularMessage(message) {
+                $.ajax({
+                    url: '/ai/chat-with-session',
+                    type: 'POST',
+                    headers: {
+                        'Authorization': 'Bearer ' + getToken()
+                    },
+                    data: {
+                        message: message,
+                        sessionId: currentSessionId,
+                        isRagEnabled: isRagEnabled
+                    },
+                    success: function(data) {
+                        if (data.success) {
+                            addMessage(data.response, 'ai');
+                            // 更新会话列表
+                            loadSessions();
+                        } else {
+                            addMessage('错误：' + data.error, 'ai error');
+                        }
+                    },
+                    error: function() {
+                        addMessage('网络错误，请重试。', 'ai error');
+                    },
+                    complete: function() {
+                        sendButton.prop('disabled', false);
+                        messageInput.focus();
+                    }
+                });
+            }
+
+            // 发送流式消息
+            function sendStreamMessage(message) {
+                // 关闭之前的连接
+                if (eventSource) {
+                    eventSource.close();
+                }
+                
+                // 添加AI消息容器
+                const aiMessageId = 'ai-message-' + Date.now();
+                const aiMessageEl = $(`
+                    <div class="message ai-message" id="${aiMessageId}">
+                        <i class="fas fa-spinner fa-spin me-2"></i>思考中...
+                    </div>
+                `);
+                chatMessages.append(aiMessageEl);
+                chatMessages.scrollTop(chatMessages[0].scrollHeight);
+                
+                // 构建URL，将token作为参数传递
+                const url = '/ai/chat-stream?message=' + encodeURIComponent(message) + 
+                           '&sessionId=' + encodeURIComponent(currentSessionId) + 
+                           '&isRagEnabled=' + isRagEnabled +
+                           '&token=' + encodeURIComponent(getToken()) +
+                           '&_=' + Date.now();
+                
+                // 创建EventSource连接
+                eventSource = new EventSource(url);
+                let aiResponse = '';
+                let streamCompleted = false;
+                
+                // ✅ 修复：过滤掉 SSE 的 data: 前缀和 event: 行（某些模型返回的chunk可能包含）
+                eventSource.onmessage = function(event) {
+                    try {
+                        let content = event.data;
+                        // 过滤掉 SSE data: 前缀
+                        if (content && content.startsWith('data:')) {
+                            content = content.substring(5).trim();
+                        }
+                        // 过滤掉 SSE event: 行（如 event: complete）
+                        if (content && content.startsWith('event:')) {
+                            return;
+                        }
+                        if (content && content.trim()) {
+                            aiResponse += content;
+                            // ✅ Markdown渲染
+                            $('#' + aiMessageId).html(renderMarkdown(aiResponse));
+                            chatMessages.scrollTop(chatMessages[0].scrollHeight);
+                        }
+                    } catch (e) {
+                        console.error('解析流式数据失败:', e);
+                    }
+                };
+                
+                // ✅ 监听后端发送的 complete 事件，正常完成时恢复按钮
+                eventSource.addEventListener('complete', function() {
+                    streamCompleted = true;
+                    eventSource.close();
+                    if (aiResponse.trim()) {
+                        $('#' + aiMessageId).html(renderMarkdown(aiResponse));
+                    }
+                    loadSessions();
+                    sendButton.prop('disabled', false);
+                    messageInput.focus();
+                });
+                
+                eventSource.onerror = function(error) {
+                    if (streamCompleted) return; // complete后的正常关闭，忽略
+                    console.error('EventSource错误:', error);
+                    eventSource.close();
+                    if (!aiResponse.trim()) {
+                        $('#' + aiMessageId).html('<span class="text-danger">流式响应失败，请重试。</span>');
+                    } else {
+                        // 有内容但连接异常中断，仍渲染已有内容
+                        $('#' + aiMessageId).html(renderMarkdown(aiResponse));
+                        loadSessions();
+                    }
+                    sendButton.prop('disabled', false);
+                    messageInput.focus();
+                };
+            }
+
+            // 添加消息到聊天区域
+            function addMessage(text, sender) {
+                $('#chatLoading').remove();
+                const messageClass = sender === 'user' ? 'user-message' :
+                                    sender === 'ai error' ? 'ai-message error-message' :
+                                    sender === 'system' ? 'ai-message system-message' : 'ai-message';
+                let content;
+                if (sender === 'user') {
+                    // 用户消息：纯文本转义
+                    content = escapeHtml(text).replace(/\n/g, '<br>');
+                } else {
+                    // AI消息：Markdown渲染
+                    content = renderMarkdown(text);
+                }
+                // 所有消息都添加复制按钮
+                const copyBtn = sender !== 'system'
+                    ? `<button class="btn-copy-content btn btn-link btn-sm p-0 ms-2 text-muted" title="复制内容" onclick="copyMessageContent(this)"><i class="fas fa-copy"></i></button>`
+                    : '';
+                const messageEl = $(`<div class="message ${messageClass}">${content}<span class="message-actions">${copyBtn}</span></div>`);
+                chatMessages.append(messageEl);
+                chatMessages.scrollTop(chatMessages[0].scrollHeight);
+            }
+
+
+
+            // Markdown渲染（使用marked.js，带XSS防护）
+            function renderMarkdown(text) {
+                if (typeof marked === 'undefined') {
+                    // marked未加载时降级处理
+                    return escapeHtml(text).replace(/\n/g, '<br>');
+                }
+                try {
+                    return marked.parse(text, { breaks: true, gfm: true });
+                } catch (e) {
+                    return escapeHtml(text).replace(/\n/g, '<br>');
+                }
+            }
+
+            // 显示Toast通知
+            function showToast(message) {
+                // 简单的通知实现
+                const toast = $(`
+                    <div class="toast-container position-fixed bottom-0 end-0 p-3">
+                        <div class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+                            <div class="toast-body">
+                                ${escapeHtml(message)}
+                            </div>
+                        </div>
+                    </div>
+                `);
+                $('body').append(toast);
+                $('.toast').toast({ delay: 3000 });
+                $('.toast').toast('show');
+                setTimeout(() => toast.remove(), 4000);
+            }
+
+            // 保留原有的新闻和天气函数
+            function loadNews() {
+                newsContent.html('<div class="loading"><i class="fas fa-spinner fa-spin me-2"></i>加载中...</div>');
+                $.get('/api/news', function(data) {
+                    if (!data || data.length === 0) {
+                        newsContent.html('<div class="text-muted text-center py-3"><i class="fas fa-inbox me-2"></i>暂无新闻数据</div>');
+                        return;
+                    }
+                    let html = '';
+                    data.forEach(function(item, index) {
+                        const title = item.title || item.content || '无标题';
+                        const content = item.content || '';
+                        const source = item.source || '未知来源';
+                        const time = item.time ? item.time.replace('T', ' ').substring(0, 16) : '';
+                        const url = item.url || '';
+                        const category = item.category || '综合';
+
+                        // 标题与内容相同时不重复显示
+                        const showContent = content && content !== title && content.length > title.length + 5;
+
+                        const categoryColor = getCategoryBadgeClass(category);
+
+                        html += `<div class="news-item">
+                            <div class="news-title">
+                                ${url
+                                    ? `<a href="${escapeHtml(url)}" target="_blank" rel="noopener" class="text-decoration-none text-dark">${escapeHtml(title)}</a>`
+                                    : escapeHtml(title)
+                                }
+                            </div>
+                            ${showContent ? `<div class="news-content">${escapeHtml(content).replace(/\n/g, '<br>')}</div>` : ''}
+                            <div class="news-meta d-flex align-items-center gap-2 flex-wrap">
+                                <span class="badge ${categoryColor}">${escapeHtml(category)}</span>
+                                <span class="badge bg-secondary">${escapeHtml(source)}</span>
+                                ${time ? `<span class="text-muted"><i class="far fa-clock me-1"></i>${escapeHtml(time)}</span>` : ''}
+                            </div>
+                        </div>`;
+                    });
+                    newsContent.html(html);
+                }).fail(function() {
+                    newsContent.html('<div class="error-message"><i class="fas fa-exclamation-triangle me-2"></i>新闻加载失败，请稍后重试</div>');
+                });
+            }
+
+            function loadWeather(city) {
+                weatherContent.html('<div class="loading"><i class="fas fa-spinner fa-spin me-2"></i>加载中...</div>');
+                $.get('/api/weather', { city: city }, function(data) {
+                    if (data.error) {
+                        weatherContent.html(`<div class="error-message">${data.error}</div>`);
+                        return;
+                    }
+                    const icon = data.condition.includes('晴') ? 'fas fa-sun' :
+                                 data.condition.includes('雨') ? 'fas fa-cloud-rain' :
+                                 data.condition.includes('云') ? 'fas fa-cloud' : 'fas fa-cloud-sun';
+                    
+                    // 处理未获取到的字段
+                    const temperature = data.temperature === '未获取到' ? `<span class="text-muted" style="font-size: 0.8rem;">${data.temperature}</span>` : data.temperature;
+                    const humidity = data.humidity === '未获取到' ? `<span class="text-muted" style="font-size: 0.8rem;">${data.humidity}</span>` : data.humidity;
+                    const wind = data.wind === '未获取到' ? `<span class="text-muted" style="font-size: 0.8rem;">${data.wind}</span>` : data.wind;
+                    const condition = data.condition === '未获取到' ? `<span class="text-muted" style="font-size: 0.8rem;">${data.condition}</span>` : data.condition;
+                    
+                    // 简单的markdown渲染函数
+                    function renderMarkdown(text) {
+                        if (!text) return '';
+                        // 替换标题
+                        text = text.replace(/^## (.*$)/gim, '<h6 class="font-weight-bold">$1</h6>');
+                        // 替换列表项
+                        text = text.replace(/^\d+\.\s*(.*$)/gim, '<div class="pl-4"><i class="fas fa-circle text-xs mr-2"></i>$1</div>');
+                        // 替换换行
+                        text = text.replace(/\n/g, '<br>');
+                        return text;
+                    }
+                    
+                    let html = `
+                        <div class="text-center mb-3">
+                            <div class="weather-icon">
+                                <i class="${icon}"></i>
+                            </div>
+                            <div class="weather-city">${data.city}</div>
+                            <div class="weather-temp">${temperature}</div>
+                            <div class="fs-5 mb-4">${condition}</div>
+                        </div>
+                        <div class="weather-detail">
+                            <span>湿度</span>
+                            <span class="fw-bold">${humidity}</span>
+                        </div>
+                        <div class="weather-detail">
+                            <span>风力</span>
+                            <span class="fw-bold">${wind}</span>
+                        </div>
+                        <div class="weather-detail">
+                            <span>更新时间</span>
+                            <span class="fw-bold">${new Date(data.updateTime).toLocaleString()}</span>
+                        </div>
+                    `;
+                    
+                    // 添加未来几天的天气预报
+                    if (data.forecast && data.forecast.length > 0) {
+                        html += `
+                            <div class="mt-4">
+                                <h6 class="text-center mb-2">未来天气预报</h6>
+                                <div class="forecast-container">
+                        `;
+                        
+                        data.forecast.forEach(day => {
+                            html += `
+                                <div class="forecast-day">
+                                    <div class="forecast-date">${day.date || ''}</div>
+                                    <div class="forecast-day-weather">${renderMarkdown(day.day || '')}</div>
+                                    ${day.night ? `<div class="forecast-night-weather">${renderMarkdown(day.night)}</div>` : ''}
+                                </div>
+                            `;
+                        });
+                        
+                        html += `
+                                </div>
+                            </div>
+                        `;
+                    }
+                    
+                    weatherContent.html(html);
+                }).fail(function() {
+                    weatherContent.html('<div class="error-message">天气加载失败</div>');
+                });
+            }
+
+
+            // ─────────────────────────────────────────────
+            //  模型配置面板（多配置版）
+            // ─────────────────────────────────────────────
+
+            let llmConfigs = [];       // 当前所有配置
+            let llmActiveId = null;    // 当前激活的配置ID
+            let llmModalTargetId = null; // 弹框中待激活的配置ID
+            let llmModalCurrentReqId = null; // 弹框中当前请求的唯一ID，防止并发混乱
+            let llmFormTested = false; // 表单是否已测试通过
+
+            const llmConfigSelect  = $('#llmConfigSelect');
+            const llmAddForm       = $('#llmAddForm');
+            const llmToggleAddBtn  = $('#llmToggleAddBtn');
+            const llmModelType     = $('#llmModelType');
+            const llmBaseUrl       = $('#llmBaseUrl');
+            const llmApiKey        = $('#llmApiKey');
+            const llmModel         = $('#llmModel');
+            const llmLabel         = $('#llmLabel');
+            const llmEditId        = $('#llmEditId');
+            const llmFeedback      = $('#llmFeedback');
+            const llmSelectHint    = $('#llmSelectHint');
+
+            /** 加载所有配置并刷新下拉 */
+            function loadLLMConfigs() {
+                $.get('/api/llm-configs', function(data) {
+                    if (!data.success) { loadLLMConfigsFail(); return; }
+                    llmConfigs  = data.configs || [];
+                    llmActiveId = data.activeId || null;
+                    renderLLMConfigSelect();
+                    loadLLMConfigsSuccess();
+                }).fail(function() { loadLLMConfigsFail(); });
+            }
+
+            function loadLLMConfigsSuccess() {
+                if (llmConfigs.length === 0) {
+                    llmSelectHint.html('<i class="fas fa-info-circle me-1"></i> 暂无保存的配置，点击右上角「新增」添加');
+                } else {
+                    const active = llmConfigs.find(c => c.id === llmActiveId);
+                    if (active) {
+                        const display = active.label || active.model;
+                        llmSelectHint.html('<span class="text-success"><i class="fas fa-check-circle me-1"></i> 当前使用：<strong>' + escapeHtml(display) + '</strong></span>');
+                    } else {
+                        llmSelectHint.html('<span class="text-muted"><i class="fas fa-info-circle me-1"></i> 未选择配置，使用系统默认模型</span>');
+                    }
+                }
+            }
+
+            function loadLLMConfigsFail() {
+                llmSelectHint.html('<span class="text-danger"><i class="fas fa-exclamation-triangle me-1"></i> 加载配置失败</span>');
+            }
+
+            /** 渲染下拉框（激活的配置排在第一位）*/
+            function renderLLMConfigSelect() {
+                let html = '';
+                if (llmConfigs.length === 0) {
+                    html = '<option value="">— 暂无保存配置，使用系统默认 —</option>';
+                } else {
+                    // 将激活的配置排到第一位
+                    const sorted = [...llmConfigs].sort(function(a, b) {
+                        if (a.id === llmActiveId) return -1;
+                        if (b.id === llmActiveId) return 1;
+                        return 0;
+                    });
+                    sorted.forEach(function(cfg) {
+                        const isActive = cfg.id === llmActiveId;
+                        const tag = cfg.label || cfg.model;
+                        const suffix = cfg.apiKeyHint ? ' ' + cfg.apiKeyHint : '';
+                        html += '<option value="' + cfg.id + '">' +
+                            (isActive ? '✓ ' : '') + escapeHtml(tag) + ' (' + escapeHtml(cfg.model) + ')' + escapeHtml(suffix) +
+                            '</option>';
+                    });
+                }
+                llmConfigSelect.html(html);
+            }
+
+            /** 展开新增表单 */
+            function showLLMAddForm(cfg) {
+                llmEditId.val(cfg && cfg.id ? cfg.id : '');
+                llmModelType.val(cfg && cfg.modelType ? cfg.modelType : 'openai_compatible');
+                llmBaseUrl.val(cfg && cfg.baseUrl ? cfg.baseUrl : '');
+                llmApiKey.val(cfg && cfg.apiKeyHint ? '' : ''); // 编辑时不清空，需要用户重填
+                llmModel.val(cfg && cfg.model ? cfg.model : '');
+                llmLabel.val(cfg && cfg.label ? cfg.label : '');
+                llmFeedback.hide();
+                onLLMTypeChange();
+
+                if (cfg && cfg.id) {
+                    // 编辑模式：显示API Key提示
+                    llmToggleAddBtn.find('i').removeClass('fa-plus').addClass('fa-pen');
+                    llmToggleAddBtn.html('<i class="fas fa-pen me-1"></i> 编辑中');
+                    if (cfg.apiKeyHint) {
+                        $('#llmApiKeyGroup .form-text').remove();
+                        $('#llmApiKeyGroup').append('<div class="form-text small text-muted">当前已保存密钥，如需修改请重新输入</div>');
+                    }
+                } else {
+                    // 新增模式
+                    llmToggleAddBtn.find('i').removeClass('fa-pen').addClass('fa-plus');
+                    llmToggleAddBtn.html('<i class="fas fa-plus me-1"></i> 新增');
+                }
+
+                llmAddForm.slideDown(200);
+                llmBaseUrl.focus();
+            }
+
+            /** 收起表单 */
+            function hideLLMAddForm() {
+                llmAddForm.slideUp(200);
+                llmToggleAddBtn.find('i').removeClass('fa-pen').addClass('fa-plus');
+                llmToggleAddBtn.html('<i class="fas fa-plus me-1"></i> 新增');
+                llmFeedback.hide();
+                // 清除apiKey提示
+                $('#llmApiKeyGroup .form-text').remove();
+            }
+
+            /** 根据模型类型更新表单占位 */
+            function onLLMTypeChange() {
+                const type = llmModelType.val();
+                if (type === 'ollama') {
+                    $('#llmApiKeyGroup').hide();
+                    llmBaseUrl.attr('placeholder', 'http://localhost:11434');
+                    llmModel.attr('placeholder', 'qwen2.5:7b');
+                } else if (type === 'xiaomimimo') {
+                    $('#llmApiKeyGroup').show();
+                    llmApiKey.attr('placeholder', '输入小米 API Key');
+                    llmBaseUrl.attr('placeholder', 'https://api.xiaomimimo.com');
+                    llmModel.attr('placeholder', 'mimo-v2-pro / mimo-v2-flash');
+                } else {
+                    $('#llmApiKeyGroup').show();
+                    llmApiKey.attr('placeholder', 'sk-...');
+                    llmBaseUrl.attr('placeholder', 'https://api.deepseek.com');
+                    llmModel.attr('placeholder', 'deepseek-chat');
+                }
+            }
+
+            /** 显示反馈 */
+            function showLLMFeedback(msg, success, persistent) {
+                llmFeedback
+                    .removeClass('alert-success alert-danger alert-warning')
+                    .addClass(success ? 'alert alert-success' : 'alert alert-danger')
+                    .html(msg)
+                    .show();
+                if (success && !persistent) setTimeout(() => llmFeedback.fadeOut(), 4000);
+            }
+
+            /** 保存配置（新增或更新）- 必须先测试通过 */
+            function saveLLMConfig() {
+                if (!llmFormTested) {
+                    showLLMFeedback('<i class="fas fa-exclamation-circle me-1"></i> 请先点击「测试连接」验证配置后再保存', false, true);
+                    return;
+                }
+                const payload = {
+                    modelType: llmModelType.val(),
+                    baseUrl:   llmBaseUrl.val().trim(),
+                    apiKey:    llmApiKey.val().trim(),
+                    model:     llmModel.val().trim(),
+                    label:     llmLabel.val().trim()
+                };
+                if (!payload.baseUrl || !payload.model) {
+                    showLLMFeedback('<i class="fas fa-exclamation-circle me-1"></i> Base URL 和模型名称不能为空', false, true);
+                    return;
+                }
+                if (payload.modelType !== 'ollama' && !payload.apiKey) {
+                    showLLMFeedback('<i class="fas fa-exclamation-circle me-1"></i> API Key 不能为空', false, true);
+                    return;
+                }
+
+                const isEdit = !!llmEditId.val();
+                const editId = isEdit ? llmEditId.val() : null;
+
+                $('#llmSaveBtn').prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i> 保存中...');
+                $.ajax({
+                    url: '/api/llm-configs',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify(payload),
+                    success: function(res) {
+                        if (res.success) {
+                            llmFormTested = false; // 重置测试状态
+                            hideLLMAddForm();
+                            loadLLMConfigs();
+                            showLLMFeedback('<i class="fas fa-check me-1"></i> ' + (isEdit ? '配置已更新' : '新配置已保存'), true, true);
+                        } else {
+                            showLLMFeedback('<i class="fas fa-times-circle me-1"></i> 保存失败：' + (res.error || ''), false, true);
+                        }
+                    },
+                    error: function() {
+                        showLLMFeedback('<i class="fas fa-times-circle me-1"></i> 网络错误', false, true);
+                    },
+                    complete: function() {
+                        $('#llmSaveBtn').prop('disabled', false).html('<i class="fas fa-save me-1"></i> 保存');
+                    }
+                });
+            }
+
+            /** 删除选中的配置 */
+            function deleteLLMConfig() {
+                const id = llmConfigSelect.val();
+                if (!id) { showToast('请先选择要删除的配置'); return; }
+                if (!confirm('确定要删除这个模型配置吗？')) return;
+
+                $.ajax({
+                    url: '/api/llm-configs/' + encodeURIComponent(id),
+                    type: 'DELETE',
+                    success: function(res) {
+                        if (res.success) {
+                            loadLLMConfigs();
+                            showToast('配置已删除');
+                        } else {
+                            alert('删除失败：' + (res.error || ''));
+                        }
+                    },
+                    error: function() { alert('网络错误'); }
+                });
+            }
+
+            /** 打开切换确认弹框 */
+            function openLLMSelectModal(cfg) {
+                if (!cfg) return;
+
+                // 生成新的请求ID，之前的请求将被忽略
+                const reqId = Date.now().toString();
+                llmModalTargetId = cfg.id;
+                llmModalCurrentReqId = reqId;
+
+                const info = '<div class="mb-1"><strong>' + escapeHtml(cfg.label || cfg.model) + '</strong></div>' +
+                    '<div class="small text-muted">类型：' + escapeHtml(cfg.modelType === 'ollama' ? 'Ollama（本地）' : 'OpenAI 兼容') + '</div>' +
+                    '<div class="small text-muted">地址：' + escapeHtml(cfg.baseUrl) + '</div>' +
+                    '<div class="small text-muted">模型：' + escapeHtml(cfg.model) + '</div>';
+
+                $('#llmModalConfigInfo').html(info);
+                $('#llmModalTestResult')
+                    .removeClass('alert-success alert-danger')
+                    .addClass('alert alert-info')
+                    .html('<i class="fas fa-spinner fa-spin me-1"></i> 正在测试连接，请稍候...')
+                    .show();
+
+                $('#llmModalConfirmBtn').prop('disabled', true);
+
+                // 自动测试（无超时限制）
+                $.ajax({
+                    url: '/api/llm-configs/' + encodeURIComponent(cfg.id) + '/test',
+                    type: 'POST',
+                    success: function(res) {
+                        // 忽略过期请求
+                        if (llmModalCurrentReqId !== reqId) return;
+
+                        if (res.success) {
+                            $('#llmModalTestResult')
+                                .removeClass('alert-info alert-danger')
+                                .addClass('alert alert-success')
+                                .html('<i class="fas fa-check-circle me-1"></i> 连接成功！模型回复：<em>' + escapeHtml(res.response || '') + '</em>');
+                            $('#llmModalConfirmBtn').prop('disabled', false);
+                        } else {
+                            $('#llmModalTestResult')
+                                .removeClass('alert-info alert-success')
+                                .addClass('alert alert-danger')
+                                .html('<i class="fas fa-times-circle me-1"></i> 连接失败：' + escapeHtml(res.error || ''));
+                            $('#llmModalConfirmBtn').prop('disabled', true);
+                        }
+                    },
+                    error: function(xhr) {
+                        // 忽略过期请求
+                        if (llmModalCurrentReqId !== reqId) return;
+
+                        const msg = xhr.status === 0 ? '请求超时或网络不可达' : ('HTTP ' + xhr.status);
+                        $('#llmModalTestResult')
+                            .removeClass('alert-info alert-success')
+                            .addClass('alert alert-danger')
+                            .html('<i class="fas fa-times-circle me-1"></i> 连接失败：' + msg);
+                        $('#llmModalConfirmBtn').prop('disabled', true);
+                    }
+                });
+
+                new bootstrap.Modal('#llmSelectModal').show();
+            }
+
+            /** 确认切换模型 */
+            function confirmLLMSelect() {
+                if (!llmModalTargetId) return;
+                const id = llmModalTargetId;
+                const reqId = Date.now().toString();
+                llmModalCurrentReqId = reqId;
+
+                $('#llmModalConfirmBtn').prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i> 激活中...');
+
+                $.ajax({
+                    url: '/api/llm-configs/' + encodeURIComponent(id) + '/select',
+                    type: 'POST',
+                    success: function(res) {
+                        // 忽略过期请求
+                        if (llmModalCurrentReqId !== reqId) return;
+
+                        if (res.success) {
+                            bootstrap.Modal.getInstance('#llmSelectModal').hide();
+                            loadLLMConfigs();
+                            showToast('<i class="fas fa-check-circle me-1"></i> ' + (res.message || '模型已切换'));
+                        } else {
+                            $('#llmModalTestResult')
+                                .removeClass('alert-info alert-success')
+                                .addClass('alert alert-danger')
+                                .html('<i class="fas fa-times-circle me-1"></i> 激活失败：' + escapeHtml(res.error || ''));
+                            $('#llmModalConfirmBtn').prop('disabled', false).html('<i class="fas fa-check me-1"></i> 确认切换');
+                        }
+                    },
+                    error: function() {
+                        // 忽略过期请求
+                        if (llmModalCurrentReqId !== reqId) return;
+
+                        $('#llmModalConfirmBtn').prop('disabled', false).html('<i class="fas fa-check me-1"></i> 确认切换');
+                    }
+                });
+            }
+
+            // 绑定事件
+            llmModelType.on('change', onLLMTypeChange);
+
+            // 表单内容变化时重置测试状态
+            llmModelType.on('change', function() { llmFormTested = false; });
+            llmBaseUrl.on('input', function() { llmFormTested = false; });
+            llmApiKey.on('input', function() { llmFormTested = false; });
+            llmModel.on('input', function() { llmFormTested = false; });
+            llmLabel.on('input', function() { llmFormTested = false; });
+
+            // 新增按钮 → 展开表单
+            llmToggleAddBtn.on('click', function() {
+                if (llmAddForm.is(':visible')) {
+                    hideLLMAddForm();
+                } else {
+                    // 清空表单准备新增
+                    llmEditId.val('');
+                    llmModelType.val('openai_compatible');
+                    llmBaseUrl.val('');
+                    llmApiKey.val('');
+                    llmModel.val('');
+                    llmLabel.val('');
+                    llmFeedback.hide();
+                    llmFormTested = false; // 重置测试状态
+                    onLLMTypeChange();
+                    llmToggleAddBtn.find('i').removeClass('fa-pen').addClass('fa-plus');
+                    llmToggleAddBtn.html('<i class="fas fa-plus me-1"></i> 新增');
+                    llmAddForm.slideDown(200);
+                    llmBaseUrl.focus();
+                }
+            });
+
+            $('#llmCancelAddBtn').on('click', hideLLMAddForm);
+            $('#llmSaveBtn').on('click', saveLLMConfig);
+            $('#llmDeleteBtn').on('click', deleteLLMConfig);
+            $('#llmFormTestBtn').on('click', testLLMConfigForm);
+
+            // 切换弹框：取消按钮显式关闭
+            $('#llmModalCancelBtn').on('click', function() {
+                bootstrap.Modal.getInstance('#llmSelectModal').hide();
+            });
+
+            // 启用按钮 → 弹框
+            $('#llmActivateBtn').on('click', function() {
+                const id = llmConfigSelect.val();
+                if (!id) { showToast('请先从下拉框选择一个配置'); return; }
+                const cfg = llmConfigs.find(c => c.id === id);
+                if (cfg) openLLMSelectModal(cfg);
+            });
+
+            // 确认切换按钮
+            $('#llmModalConfirmBtn').on('click', confirmLLMSelect);
+
+            // 选中配置时，显示当前激活状态
+            llmConfigSelect.on('change', function() {
+                const id = $(this).val();
+                if (!id) { llmSelectHint.html('<span class="text-muted"><i class="fas fa-info-circle me-1"></i> 未选择配置，使用系统默认模型</span>'); return; }
+                const cfg = llmConfigs.find(c => c.id === id);
+                if (!cfg) return;
+                if (cfg.id === llmActiveId) {
+                    const tag = cfg.label || cfg.model;
+                    llmSelectHint.html('<span class="text-success"><i class="fas fa-check-circle me-1"></i> 当前使用：<strong>' + escapeHtml(tag) + '</strong></span>');
+                } else {
+                    llmSelectHint.html('<span class="text-muted"><i class="fas fa-info-circle me-1"></i> 选择后点击「启用」切换到此模型</span>');
+                }
+            });
+
+            // 页面加载时获取配置列表（移到initApp函数中调用）
+
+            /** 新增/编辑表单中的「测试连接」按钮（5分钟超时）*/
+            function testLLMConfigForm() {
+                const payload = {
+                    modelType: llmModelType.val(),
+                    baseUrl:   llmBaseUrl.val().trim(),
+                    apiKey:    llmApiKey.val().trim(),
+                    model:     llmModel.val().trim(),
+                    label:     llmLabel.val().trim()
+                };
+                if (!payload.baseUrl || !payload.model) {
+                    showLLMFeedback('<i class="fas fa-exclamation-circle me-1"></i> Base URL 和模型名称不能为空', false, true);
+                    return;
+                }
+                if (payload.modelType !== 'ollama' && !payload.apiKey) {
+                    showLLMFeedback('<i class="fas fa-exclamation-circle me-1"></i> API Key 不能为空', false, true);
+                    return;
+                }
+
+                $('#llmFormTestBtn').prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i> 测试中（最长5分钟）...');
+                showLLMFeedback('<i class="fas fa-spinner fa-spin me-1"></i> 正在连接，请稍候（超时5分钟）...', false, true);
+
+                $.ajax({
+                    url: '/api/llm-configs/test',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify(payload),
+                    success: function(res) {
+                        if (res.success) {
+                            llmFormTested = true; // 测试通过，允许保存
+                            showLLMFeedback('<i class="fas fa-check-circle me-1"></i> 连接成功！模型回复：<em>' + escapeHtml(res.response || '') + '</em><br><small class="text-success">现在可以保存了</small>', true, true);
+                        } else {
+                            llmFormTested = false; // 测试失败，禁止保存
+                            showLLMFeedback('<i class="fas fa-times-circle me-1"></i> 连接失败：' + escapeHtml(res.error || ''), false, true);
+                        }
+                    },
+                    error: function(xhr) {
+                        llmFormTested = false; // 测试失败，禁止保存
+                        const msg = xhr.status === 0 ? '请求超时（5分钟）或网络不可达' : ('HTTP ' + xhr.status);
+                        showLLMFeedback('<i class="fas fa-times-circle me-1"></i> ' + msg, false, true);
+                    },
+                    complete: function() {
+                        $('#llmFormTestBtn').prop('disabled', false).html('<i class="fas fa-plug me-1"></i> 测试连接');
+                    }
+                });
+            }
+
+            // ─────────────────────────────────────────────
+
+            // 简单的HTML转义
+            function escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            }
+
+            // 保留历史记录功能
+            function loadHistory(type) {
+                // 历史要闻走独立接口
+                if (type === 'news_history') {
+                    loadNewsHistory();
+                    return;
+                }
+
+                const url = type && type !== 'all' ? '/api/history?type=' + encodeURIComponent(type) : '/api/history';
+                $('#historyList').html('<div class="text-center py-4 text-muted"><i class="fas fa-spinner fa-spin me-2"></i> 加载中...</div>');
+                $.get(url, function(data) {
+                    if (data.length === 0) {
+                        $('#historyList').html('<div class="text-center py-4 text-muted">暂无历史记录</div>');
+                        return;
+                    }
+                    let html = '';
+                    data.forEach(record => {
+                        const date = new Date(record.createTime * 1000).toLocaleString();
+                        const typeBadge = record.type === 'ai_chat' ? '<span class="badge bg-primary">AI对话</span>' :
+                                         record.type === 'news_query' ? '<span class="badge bg-success">新闻</span>' :
+                                         '<span class="badge bg-info">天气</span>';
+                        html += `
+                            <div class="list-group-item">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        ${typeBadge}
+                                        <small class="text-muted ms-2">${date}</small>
+                                    </div>
+                                    <small class="text-muted">用户: ${record.username}</small>
+                                </div>
+                                <div class="mt-2">${escapeHtml(record.content).replace(/\n/g, '<br>')}</div>
+                                ${record.metadata ? `<div class="mt-1 small text-muted">附加: ${escapeHtml(record.metadata)}</div>` : ''}
+                            </div>
+                        `;
+                    });
+                    $('#historyList').html(html);
+                }).fail(function() {
+                    $('#historyList').html('<div class="text-center py-4 text-muted">加载失败</div>');
+                });
+            }
+
+            // 模态框显示时加载历史记录
+            $('#historyModal').on('show.bs.modal', function() {
+                loadHistory('all');
+                $('[data-type]').off('click').click(function() {
+                    $('[data-type]').removeClass('active');
+                    $(this).addClass('active');
+                    const type = $(this).data('type');
+                    loadHistory(type);
+                });
+            });
+
+            // 初始化应用
+            initApp();
+        });
+    </script>
+</body>
+</html>

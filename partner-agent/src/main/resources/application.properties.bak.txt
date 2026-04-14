@@ -1,0 +1,49 @@
+server.port=5678
+
+server.servlet.encoding.enabled=true
+server.servlet.encoding.force=true
+server.servlet.encoding.charset=UTF-8
+
+spring.application.name=partner-agent
+
+# ====Ollama Config（默认本地地址，用户可在页面自定义）=============
+spring.ai.ollama.base-url=${SPRING_AI_OLLAMA_BASE_URL:http://localhost:11434}
+spring.ai.ollama.chat.enabled=false
+
+# ====Deepseek OpenAI Config（当前默认模型，由SeparateChatAssistant运行时读取）=============
+spring.ai.openai.api-key=${SPRING_AI_OPENAI_API_KEY}
+spring.ai.openai.base-url=${SPRING_AI_OPENAI_BASE_URL:https://api.deepseek.com}
+spring.ai.openai.chat.options.model=${SPRING_AI_OPENAI_MODEL:deepseek-reasoner}
+
+# ====默认模型配置（SeparateChatAssistant 运行时动态读取，无需IOC注入Bean）=============
+# 用户未配置自定义模型时使用此配置，覆盖以下属性即可切换默认模型
+spring.ai.default.model-type=openai
+spring.ai.default.base-url=${SPRING_AI_DEFAULT_BASE_URL:https://api.deepseek.com}
+spring.ai.default.api-key=${SPRING_AI_DEFAULT_API_KEY}
+spring.ai.default.model=${SPRING_AI_DEFAULT_MODEL:deepseek-reasoner}
+
+# ====mcp-client Config=============
+spring.ai.mcp.client.request-timeout=60s
+spring.ai.mcp.client.toolcallback.enabled=true
+spring.ai.mcp.client.stdio.servers-configuration=classpath:/mcp-server-config.json5
+
+# mongodb database
+spring.data.mongodb.uri=${SPRING_DATA_MONGODB_URI}
+
+# Redis配置
+spring.data.redis.host=${SPRING_DATA_REDIS_HOST}
+spring.data.redis.port=${SPRING_DATA_REDIS_PORT}
+spring.data.redis.database=${SPRING_DATA_REDIS_DATABASE:0}
+
+# =======Qdrant Vector Store (RAG)==========
+spring.ai.vectorstore.qdrant.api-key=${SPRING_AI_VECTORSTORE_QDRANT_API_KEY}
+spring.ai.vectorstore.qdrant.host=${SPRING_AI_VECTORSTORE_QDRANT_HOST}
+spring.ai.vectorstore.qdrant.port=${SPRING_AI_VECTORSTORE_QDRANT_PORT}
+
+# 集合名称
+spring.ai.vectorstore.qdrant.collection-name=${SPRING_AI_VECTORSTORE_QDRANT_COLLECTION_NAME:rag-collection}
+spring.ai.openai.embedding.options.dimensions=1024
+spring.ai.ollama.embedding.options.dimensions=1024
+
+# 自动创建集合结构
+spring.ai.vectorstore.qdrant.initialize-schema=true

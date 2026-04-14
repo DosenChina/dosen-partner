@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>用户登录 - SpringAIAlibaba</title>
+    <!-- Favicon -->
+    <link rel="icon" href="/static/img/DosenChinaLogo.png" type="image/png">
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-image: url('/static/img/img.png');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+            min-height: 100vh;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        html {
+            height: 100%;
+        }
+        .login-container {
+            max-width: 400px;
+            margin: 100px auto;
+            padding: 30px;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+        .login-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .login-header h2 {
+            color: #333;
+            font-weight: 600;
+        }
+        .form-control:focus {
+            border-color: #0d6efd;
+            box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+        }
+        .btn-login {
+            width: 100%;
+            padding: 10px;
+            font-weight: 600;
+        }
+        .alert {
+            margin-top: 20px;
+        }
+        .register-link {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="login-container">
+            <div class="login-header">
+                <h2>用户登录</h2>
+                <p class="text-muted">请输入您的凭证以继续</p>
+            </div>
+
+            <!-- 错误消息 -->
+            <div th:if="${error}" class="alert alert-danger alert-dismissible fade show" role="alert">
+                <span th:text="${error}"></span>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+
+            <!-- 成功消息 -->
+            <div th:if="${message}" class="alert alert-success alert-dismissible fade show" role="alert">
+                <span th:text="${message}"></span>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+
+            <form id="loginForm">
+                <div class="mb-3">
+                    <label for="username" class="form-label">用户名</label>
+                    <input type="text" class="form-control" id="username" name="username" required
+                           placeholder="请输入用户名" autofocus>
+                </div>
+                <div class="mb-3">
+                    <label for="password" class="form-label">密码</label>
+                    <input type="password" class="form-control" id="password" name="password" required
+                           placeholder="请输入密码">
+                </div>
+                <div class="d-grid gap-2">
+                    <button type="submit" class="btn btn-primary btn-login">登录</button>
+                </div>
+            </form>
+
+            <div class="register-link">
+                <p class="text-muted">还没有账户？ <a th:href="@{/register}">立即注册</a></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // 登录表单提交处理
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            // 显示加载状态
+            const loginButton = document.querySelector('.btn-login');
+            const originalText = loginButton.textContent;
+            loginButton.textContent = '登录中...';
+            loginButton.disabled = true;
+            
+            // 发送AJAX请求
+            fetch('/doLogin', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: `username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                // 恢复按钮状态
+                loginButton.textContent = originalText;
+                loginButton.disabled = false;
+                
+                if (data.success) {
+                    // 存储token到本地存储和cookie
+                    localStorage.setItem('token', data.token);
+                    localStorage.setItem('username', data.username);
+                    localStorage.setItem('nickname', data.nickname);
+                    
+                    // 设置cookie，有效期1天
+                    document.cookie = `token=${data.token}; path=/; max-age=86400; SameSite=Lax`;
+                    
+                    // 跳转到首页，不需要在URL中携带token
+                    window.location.href = '/';
+                } else {
+                    // 显示错误信息
+                    const errorDiv = document.createElement('div');
+                    errorDiv.className = 'alert alert-danger alert-dismissible fade show';
+                    errorDiv.role = 'alert';
+                    errorDiv.innerHTML = `
+                        <span>${data.error}</span>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    `;
+                    
+                    // 插入到表单上方
+                    const form = document.getElementById('loginForm');
+                    form.parentNode.insertBefore(errorDiv, form);
+                    
+                    // 3秒后自动关闭错误提示
+                    setTimeout(() => {
+                        errorDiv.classList.remove('show');
+                        setTimeout(() => errorDiv.remove(), 150);
+                    }, 3000);
+                }
+            })
+            .catch(error => {
+                // 恢复按钮状态
+                loginButton.textContent = originalText;
+                loginButton.disabled = false;
+                
+                // 显示错误信息
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'alert alert-danger alert-dismissible fade show';
+                errorDiv.role = 'alert';
+                errorDiv.innerHTML = `
+                    <span>登录失败，请稍后重试</span>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                `;
+                
+                // 插入到表单上方
+                const form = document.getElementById('loginForm');
+                form.parentNode.insertBefore(errorDiv, form);
+            });
+        });
+        
+        // 添加XMLHttpRequest拦截器，自动添加token到请求头
+        (function() {
+            const originalOpen = XMLHttpRequest.prototype.open;
+            XMLHttpRequest.prototype.open = function() {
+                const xhr = this;
+                const originalSend = xhr.send;
+                
+                xhr.send = function() {
+                    const token = localStorage.getItem('token');
+                    if (token) {
+                        xhr.setRequestHeader('Authorization', 'Bearer ' + token);
+                    }
+                    originalSend.apply(xhr, arguments);
+                };
+                
+                return originalOpen.apply(this, arguments);
+            };
+        })();
+        
+        // 添加fetch拦截器，自动添加token到请求头
+        (function() {
+            const originalFetch = window.fetch;
+            window.fetch = function(url, options = {}) {
+                const token = localStorage.getItem('token');
+                if (token) {
+                    options.headers = options.headers || {};
+                    if (typeof options.headers === 'object' && !(options.headers instanceof Headers)) {
+                        options.headers['Authorization'] = 'Bearer ' + token;
+                    } else if (options.headers instanceof Headers) {
+                        options.headers.set('Authorization', 'Bearer ' + token);
+                    }
+                }
+                return originalFetch(url, options);
+            };
+        })();
+    </script>
+</body>
+</html>
